@@ -74,9 +74,8 @@ Requiere Python 3.12 y [uv](https://docs.astral.sh/uv/).
 nada. Ninguna parte del banco de pruebas está atada a un sistema operativo —no hay código
 que se elija según el sistema— y lo único que se adapta es de dónde sale la potencia, que
 se resuelve en cada corrida preguntándole al equipo qué ofrece. Donde no hay lectura
-disponible, se estima y se deja constancia. La única función condicionada al sistema es la
-calibración opcional de la vía A (`--calibrar`), que fuera de macOS informa que no está
-disponible y conserva los valores de referencia en lugar de fallar.
+disponible, se estima y se deja constancia. No hay ninguna rama de código que dependa del
+sistema operativo.
 
 Corrido y verificado en macOS con Apple Silicon; en Linux y Windows no se verificó.
 
@@ -151,17 +150,11 @@ copiarlos antes.
 ```bash
 uv run huella-carbono --repeticiones 5    # repeticiones por punto (por defecto 3)
 uv run huella-carbono --solo-informe      # regenera gráficos e informe sin volver a medir
-uv run huella-carbono --calibrar          # calibra el modelo de potencia de la vía A
 uv run huella-carbono --help
 ```
 
 `--solo-informe` no mide: relee `resultados/simulacion_huella_carbono.csv` y regenera los
 gráficos y el informe. Es lo que hay que usar después de tocar el código del informe.
-
-`--calibrar` mide la potencia en reposo y con todos los núcleos saturados, para el modelo
-de la vía A que se describe abajo. Satura el chip con un proceso por núcleo —no con hilos,
-que el GIL serializaría dejando activo uno solo— y si la potencia bajo carga no se despega
-de la de reposo, descarta la calibración y conserva los valores de referencia.
 
 ### Qué produce
 
@@ -191,35 +184,23 @@ proyecto, con una planilla o con cualquier herramienta de datos.
 **Qué contiene.** Una fila por medición y 21 columnas. En una corrida completa son 126
 filas: 42 configuraciones —cada combinación de algoritmo y tamaño— por 3 repeticiones.
 
-| Grupo de columnas | Contenido |
+| Columna | Contenido |
 |---|---|
-| Identificación | experimento, algoritmo, su complejidad teórica, tamaño `n`, número de repetición y cuántas ejecuciones entraron en el lote medido |
-| Tiempo y recursos | segundos transcurridos, segundos de procesador consumidos, utilización, núcleos activos y memoria pico |
-| Vía B — CodeCarbon | duración, energía en kWh, CO₂ en kg, el CO₂ que la herramienta calcularía con su propio factor de emisión, y la potencia de procesador registrada. **Es la vía que usa el informe.** |
-| Vía A — medidor propio | potencia atribuida, energía y CO₂ del algoritmo, y los mismos valores incluyendo el consumo basal de la máquina. Se registran para quien quiera retomar esta vía; el informe no los usa. |
-
-Que estén las dos vías permite recalcular el informe por cualquiera de las dos sin volver
-a medir, y comparar una contra otra si hiciera falta.
+| `experimento`, `algoritmo`, `complejidad`, `n` | qué se midió y de qué tamaño |
+| `repeticion`, `ejecuciones_lote` | cuál de las tres repeticiones es, y cuántas ejecuciones entraron en el lote medido |
+| `tiempo_s` | segundos por ejecución, cronometrados alrededor del trabajo |
+| `tiempo_s_informado` | la duración que informa la herramienta, que incluye lo que ella tarda en leer la potencia. Se guarda para que esa diferencia quede a la vista |
+| `energia_kwh`, `co2_kg` | el consumo y las emisiones por ejecución. **Son las cifras del informe** |
+| `co2_kg_nativo` | el CO₂ que la herramienta calcularía con su propia tabla de factores de emisión, en lugar del de §2 del informe |
+| `potencia_cpu_w` | la potencia de procesador registrada en esa medición |
 
 ## Cómo funciona
 
-El proyecto implementa **dos vías de medición** sobre exactamente el mismo trabajo. El
-informe **desarrolla la vía B (CodeCarbon)**: todas sus cifras salen de ahí. La vía A queda
-implementada y sus columnas se registran en el CSV, pero el informe sólo la documenta como
-la alternativa disponible.
-
-**Vía B — CodeCarbon**, la herramienta estándar de la industria, en modo offline con el
-factor de emisión de Argentina. Es la vía desarrollada.
-
-**Vía A — medidor propio** (`medidor.py`), no desarrollada. Modelo auditable paso a paso:
-
-```
-cpu_s      = Δ(user + sys) de psutil.Process().cpu_times()
-u          = cpu_s / (tiempo_s × n_núcleos)
-P_marginal = (P_max − P_idle) × u  +  ΔRAM_GB × P_ram
-E [kWh]    = P × tiempo_s / 3 600 000
-CO₂ [kg]   = E × FE × PUE
-```
+**El proyecto se basa en CodeCarbon**, la herramienta estándar de la industria, en modo
+offline con el factor de emisión de Argentina. Es la única vía de medición: no hay ningún
+otro cálculo de consumo ni de emisiones en el código. El informe menciona en §3.3 que
+existe la alternativa de deducir la potencia con un modelo propio, pero es una mención:
+este proyecto no la implementa.
 
 Decisiones metodológicas que sostienen los resultados:
 
@@ -245,7 +226,7 @@ src/huella_carbono/
 ├── algoritmos.py   las implementaciones clásicas y la verificación de equivalencia
 ├── ml.py           el experimento de KNN (scikit-learn), en módulo aparte para no
 │                   pagar el costo de importar sklearn cuando no se usa
-├── medidor.py      las dos vías de medición + calibración de la vía A
+├── medidor.py      la medición con CodeCarbon y el dimensionado del lote
 ├── benchmark.py    orquestación y volcado al CSV
 ├── graficos.py     los 5 gráficos del informe
 ├── informe.py      genera INFORME.md a partir del CSV

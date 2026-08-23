@@ -7,7 +7,6 @@ Interfaz de línea de comandos.
     uv run huella-carbono --rapido      # validación del pipeline (< 1 min)
     uv run huella-carbono --completo    # corrida final del proyecto
     uv run huella-carbono --solo ordenamiento
-    uv run huella-carbono --calibrar    # calibra el modelo con powermetrics (requiere sudo -v)
     uv run huella-carbono --solo-informe  # regenera gráficos e informe sin volver a medir
 """
 
@@ -21,7 +20,6 @@ from huella_carbono import config
 from huella_carbono.benchmark import cargar_resultados, ejecutar
 from huella_carbono.graficos import generar_todos
 from huella_carbono.informe import generar
-from huella_carbono.medidor import calibrar_modelo
 
 
 def parsear_argumentos(argv: list[str] | None = None) -> argparse.Namespace:
@@ -59,11 +57,6 @@ def parsear_argumentos(argv: list[str] | None = None) -> argparse.Namespace:
         default=config.REPETICIONES,
         help=f"repeticiones por punto de medición (por defecto {config.REPETICIONES})",
     )
-    parser.add_argument(
-        "--calibrar",
-        action="store_true",
-        help="calibra P_idle y P_max con powermetrics antes de medir (ejecutar `sudo -v` antes)",
-    )
     return parser.parse_args(argv)
 
 
@@ -75,20 +68,6 @@ def main(argv: list[str] | None = None) -> int:
     print("  Green Software — Universidad Tecnológica Nacional - FRC")
     print("=" * 78)
     print()
-
-    if args.calibrar:
-        print("Calibrando el modelo de potencia con powermetrics...")
-        resultado = calibrar_modelo()
-        if resultado["disponible"]:
-            m = resultado["modelo"]
-            print(
-                f"  calibrado: P_idle = {m['p_idle_w']} W, P_max = {m['p_max_w']} W "
-                f"(chip al {resultado['carga_durante_calibracion']}% de carga, "
-                f"{resultado['nucleos_saturados']} procesos)\n"
-            )
-        else:
-            print(f"  no disponible: {resultado['motivo']}")
-            print("  se continúa con los valores de referencia.\n")
 
     if args.solo_informe:
         _, resumen, metadatos = cargar_resultados()

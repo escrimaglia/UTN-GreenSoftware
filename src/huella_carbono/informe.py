@@ -82,10 +82,10 @@ def seccion_experimento(
 
     filas = []
     for _, f in datos.iterrows():
-        desvio = f.co2_kg_codecarbon_std
+        desvio = f.co2_kg_std
         variabilidad = (
-            f"±{formato_numero(desvio / f.co2_kg_codecarbon_mean * 100, 1)}%"
-            if pd.notna(desvio) and f.co2_kg_codecarbon_mean > 0
+            f"±{formato_numero(desvio / f.co2_kg_mean * 100, 1)}%"
+            if pd.notna(desvio) and f.co2_kg_mean > 0
             else "—"
         )
         filas.append(
@@ -94,8 +94,8 @@ def seccion_experimento(
                 f"`{f.algoritmo}`",
                 complejidad_de(f.algoritmo, f.complejidad),
                 formato_cientifico(f.tiempo_s_mean),
-                formato_cientifico(f.energia_kwh_codecarbon_mean),
-                formato_cientifico(f.co2_kg_codecarbon_mean),
+                formato_cientifico(f.energia_kwh_mean),
+                formato_cientifico(f.co2_kg_mean),
                 variabilidad,
             ]
         )
@@ -117,10 +117,10 @@ def seccion_experimento(
 
     # Factor de mejora entre el peor y el mejor algoritmo, en el mayor tamaño medido.
     n_max = datos.n.max()
-    en_max = datos[datos.n == n_max].sort_values("co2_kg_codecarbon_mean")
+    en_max = datos[datos.n == n_max].sort_values("co2_kg_mean")
     if len(en_max) >= 2:
         mejor, peor = en_max.iloc[0], en_max.iloc[-1]
-        factor = peor.co2_kg_codecarbon_mean / mejor.co2_kg_codecarbon_mean
+        factor = peor.co2_kg_mean / mejor.co2_kg_mean
         partes.append(
             f"**Resultado para n = {formato_numero(int(n_max), 0)}:** `{mejor.algoritmo}` "
             f"({complejidad_de(mejor.algoritmo, mejor.complejidad)}) emite "
@@ -157,15 +157,15 @@ def seccion_experimento(
         # Inversión del orden: si el algoritmo más limpio en el tamaño más chico no es el
         # más limpio en el más grande, la conclusión depende de la escala y hay que decirlo.
         n_min = datos.n.min()
-        en_min = datos[datos.n == n_min].sort_values("co2_kg_codecarbon_mean")
+        en_min = datos[datos.n == n_min].sort_values("co2_kg_mean")
         if len(en_min) >= 2 and n_min != n_max:
             mejor_min = en_min.iloc[0]
             if str(mejor_min.algoritmo) != str(mejor.algoritmo):
                 fila_min_del_mejor = en_min[en_min.algoritmo == mejor.algoritmo]
                 if not fila_min_del_mejor.empty:
                     factor_invertido = float(
-                        fila_min_del_mejor.iloc[0].co2_kg_codecarbon_mean
-                        / mejor_min.co2_kg_codecarbon_mean
+                        fila_min_del_mejor.iloc[0].co2_kg_mean
+                        / mejor_min.co2_kg_mean
                     )
                     partes.append(
                         f"**El orden se invierte con el tamaño.** En "
@@ -183,11 +183,11 @@ def seccion_experimento(
 
         ajustes = []
         for algoritmo, grupo in datos.groupby("algoritmo"):
-            grupo = grupo[(grupo.n > 0) & (grupo.co2_kg_codecarbon_mean > 0)]
+            grupo = grupo[(grupo.n > 0) & (grupo.co2_kg_mean > 0)]
             if len(grupo) < 3:
                 continue
             pendiente = float(
-                np.polyfit(np.log(grupo.n), np.log(grupo.co2_kg_codecarbon_mean), 1)[0]
+                np.polyfit(np.log(grupo.n), np.log(grupo.co2_kg_mean), 1)[0]
             )
             esperado = exp.exponente_esperado.get(str(algoritmo), None)
 
@@ -197,7 +197,7 @@ def seccion_experimento(
                 # en su lugar el factor de crecimiento por unidad de n, que sí lo es.
                 g = grupo.sort_values("n")
                 base = float(
-                    (g.co2_kg_codecarbon_mean.iloc[-1] / g.co2_kg_codecarbon_mean.iloc[0])
+                    (g.co2_kg_mean.iloc[-1] / g.co2_kg_mean.iloc[0])
                     ** (1.0 / (g.n.iloc[-1] - g.n.iloc[0]))
                 )
                 ajustes.append(
@@ -266,7 +266,6 @@ def seccion_experimento(
 
 def generar(resumen: pd.DataFrame, metadatos: dict[str, Any], rutas: dict[str, str]) -> str:
     """Arma el informe completo y lo escribe en `INFORME.md`."""
-    modelo = metadatos["modelo_potencia"]
     mediciones = (
         pd.read_csv(config.CSV_SIMULACION) if config.CSV_SIMULACION.exists() else None
     )
@@ -274,7 +273,7 @@ def generar(resumen: pd.DataFrame, metadatos: dict[str, Any], rutas: dict[str, s
     cc = metadatos.get("codecarbon_deteccion", {})
     matriz = config.MATRIZ_AR
 
-    total_co2 = float(resumen.co2_kg_codecarbon_mean.sum())
+    total_co2 = float(resumen.co2_kg_mean.sum())
 
     p: list[str] = []
     a = p.append
@@ -459,10 +458,11 @@ def generar(resumen: pd.DataFrame, metadatos: dict[str, Any], rutas: dict[str, s
     a(f"4. **Repeticiones.** Cada punto se mide {metadatos['repeticiones']} veces; se")
     a("   reportan media y dispersión.")
     a("")
-    a("### 3.3 Vía A — Medidor propio (opción no desarrollada)")
+    a("### 3.3 Otra opción de cálculo: un modelo propio")
     a("")
-    a("Un modelo que deduce la potencia a partir de cuánto procesador usa el algoritmo, y le")
-    a("atribuye sólo el consumo *adicional* que provoca:")
+    a("Existe una alternativa a usar una herramienta de medición: deducir la potencia a")
+    a("partir de cuánto procesador usa el algoritmo, y atribuirle sólo el consumo adicional")
+    a("que provoca. La cadena de cálculo sería:")
     a("")
     a("```")
     a("uso del procesador  =  tiempo de cálculo consumido / (tiempo transcurrido × núcleos)")
@@ -471,48 +471,20 @@ def generar(resumen: pd.DataFrame, metadatos: dict[str, Any], rutas: dict[str, s
     a("huella              =  energía × factor de emisión × PUE")
     a("```")
     a("")
-    a("Parámetros del modelo de potencia:")
+    a("Requiere tres parámetros del equipo donde se corre: la **potencia en reposo**, la")
+    a("**potencia con todos los núcleos ocupados** y el **consumo de la memoria por GB**")
+    a("usado. Los dos primeros hay que medirlos con un sensor de consumo; suponerlos vuelve")
+    a("el resultado tan discutible como la suposición.")
     a("")
-    a(
-        tabla_markdown(
-            [
-                ["Procesador", modelo["nombre_cpu"]],
-                ["Potencia en reposo", f"{formato_numero(modelo['p_idle_w'])} W"],
-                ["Potencia con todos los núcleos ocupados", f"{formato_numero(modelo['p_max_w'])} W"],
-                ["Potencia de la memoria", f"{formato_numero(modelo['p_ram_w_por_gb'], 4)} W por GB usado"],
-                [
-                    "Origen de los parámetros",
-                    "medidos en este equipo" if modelo["origen"] == "powermetrics"
-                    else "valores de referencia, no medidos acá",
-                ],
-            ],
-            ["Parámetro", "Valor"],
-        )
-    )
-    a("")
-    if modelo["origen"] == "referencia":
-        a("> ⚠️ **Los parámetros de potencia son valores de referencia, no medidos en este")
-        a("> equipo.** Obtener la potencia real del chip requiere `powermetrics` con")
-        a("> privilegios de root. El proyecto incluye esa calibración en")
-        a("> `uv run huella-carbono --calibrar` (previo `sudo -v`). Consecuencia: los")
-        a("> valores absolutos de CO₂ tienen la incertidumbre de P_max, pero **las")
-        a("> comparaciones relativas entre algoritmos no se ven afectadas**, porque el")
-        a("> mismo factor multiplica a todos.")
-    else:
-        a("> Los parámetros no se supusieron: se **midieron en este equipo** con el sensor de")
-        a("> consumo del sistema, tomando la potencia en reposo y con todos los núcleos")
-        a("> saturados.")
-    a("")
-    a("**Esta vía se documenta como la alternativa disponible, pero no se desarrolla en")
-    a("este trabajo.** Sus resultados quedan registrados junto con los demás datos de la")
-    a("corrida, para quien quiera retomarla. Todo lo que sigue proviene de la Vía B.")
+    a("**Se menciona como opción y nada más: este trabajo no la implementa.** Todo lo que")
+    a("sigue proviene de la vía que sí se desarrolla.")
     a("")
 
-    a("### 3.4 Vía B — CodeCarbon (vía desarrollada)")
+    a("### 3.4 La vía de este trabajo: CodeCarbon")
     a("")
     a("CodeCarbon es la herramienta de referencia en la industria para medir la huella de")
-    a("carbono del software. **Es la vía que este trabajo desarrolla: todas las cifras de §4")
-    a("y §5 salen de acá.** Se la usó con tres criterios:")
+    a("carbono del software. **Todas las cifras de §4 y §5 salen de acá.** Se la usó con tres")
+    a("criterios:")
     a("")
     a("- **El país se declara, no se deduce.** La herramienta puede averiguarlo a partir de")
     a("  la conexión a internet, pero eso ataría el resultado a la red desde la que se corre")
@@ -630,7 +602,7 @@ def generar(resumen: pd.DataFrame, metadatos: dict[str, Any], rutas: dict[str, s
     def ajuste_log_log(datos: pd.DataFrame) -> tuple[float, float, int]:
         """Pendiente y R² del ajuste log-log de CO₂ contra tiempo, y cantidad de puntos."""
         x = datos.tiempo_s_mean.to_numpy(dtype=float)
-        y = datos.co2_kg_codecarbon_mean.to_numpy(dtype=float)
+        y = datos.co2_kg_mean.to_numpy(dtype=float)
         valido = (x > 0) & (y > 0)
         if valido.sum() < 3:
             return float("nan"), float("nan"), int(valido.sum())
@@ -652,8 +624,8 @@ def generar(resumen: pd.DataFrame, metadatos: dict[str, Any], rutas: dict[str, s
     # casi no varía entre algoritmos, el ajuste no dice nada sobre el mundo. Con potencia
     # medida sí lo dice, así que el texto cambia según lo que haya pasado en la corrida.
     potencias = (
-        mediciones.potencia_cpu_w_codecarbon.dropna()
-        if mediciones is not None and "potencia_cpu_w_codecarbon" in mediciones
+        mediciones.potencia_cpu_w.dropna()
+        if mediciones is not None and "potencia_cpu_w" in mediciones
         else pd.Series(dtype=float)
     )
     if cc.get("lectura_directa"):
@@ -685,14 +657,14 @@ def generar(resumen: pd.DataFrame, metadatos: dict[str, Any], rutas: dict[str, s
     mejor_contraste: tuple[float, Any, Any, str] | None = None
     for clave_exp in sorted(set(str(x) for x in resumen.experimento.unique())):
         datos_exp = resumen[resumen.experimento == clave_exp]
-        en_max = datos_exp[datos_exp.n == datos_exp.n.max()].sort_values("co2_kg_codecarbon_mean")
+        en_max = datos_exp[datos_exp.n == datos_exp.n.max()].sort_values("co2_kg_mean")
         if len(en_max) < 2:
             continue
         rapido, lento = en_max.iloc[0], en_max.iloc[-1]
-        if rapido.tiempo_s_mean <= 0 or rapido.co2_kg_codecarbon_mean <= 0:
+        if rapido.tiempo_s_mean <= 0 or rapido.co2_kg_mean <= 0:
             continue
         f_tiempo = float(lento.tiempo_s_mean / rapido.tiempo_s_mean)
-        f_co2 = float(lento.co2_kg_codecarbon_mean / rapido.co2_kg_codecarbon_mean)
+        f_co2 = float(lento.co2_kg_mean / rapido.co2_kg_mean)
         if f_co2 <= 0:
             continue
         brecha = f_tiempo / f_co2
@@ -702,7 +674,7 @@ def generar(resumen: pd.DataFrame, metadatos: dict[str, Any], rutas: dict[str, s
     if mejor_contraste is not None and mejor_contraste[0] > 2:
         _, rapido, lento, clave_exp = mejor_contraste
         f_tiempo = float(lento.tiempo_s_mean / rapido.tiempo_s_mean)
-        f_co2 = float(lento.co2_kg_codecarbon_mean / rapido.co2_kg_codecarbon_mean)
+        f_co2 = float(lento.co2_kg_mean / rapido.co2_kg_mean)
         a("Y hay un par donde la proporcionalidad se rompe. El caso más claro está en")
         a(f"{EXPERIMENTOS[clave_exp].titulo}, con "
           f"{EXPERIMENTOS[clave_exp].unidad_n} = {formato_numero(int(rapido.n), 0)}: "
@@ -748,10 +720,10 @@ def generar(resumen: pd.DataFrame, metadatos: dict[str, Any], rutas: dict[str, s
         cola = float("nan")
         if (
             mediciones is not None
-            and {"tiempo_s_codecarbon", "tiempo_s", "ejecuciones_lote"} <= set(mediciones.columns)
+            and {"tiempo_s_informado", "tiempo_s", "ejecuciones_lote"} <= set(mediciones.columns)
         ):
             diferencia = (
-                (mediciones.tiempo_s_codecarbon - mediciones.tiempo_s)
+                (mediciones.tiempo_s_informado - mediciones.tiempo_s)
                 * mediciones.ejecuciones_lote
             )
             cola = float(diferencia.median())
@@ -815,7 +787,7 @@ def generar(resumen: pd.DataFrame, metadatos: dict[str, Any], rutas: dict[str, s
     a("Presentar solo ese número invitaría a concluir que el problema es irrelevante, y")
     a("sería una lectura equivocada: el software se ejecuta a escala.")
     a("")
-    peor = resumen.loc[resumen.co2_kg_codecarbon_mean.idxmax()]
+    peor = resumen.loc[resumen.co2_kg_mean.idxmax()]
     # Las escalas de extrapolación las declara cada experimento: multiplicar un
     # entrenamiento de modelo por mil millones no describe ningún escenario real. Si el
     # experimento no declara las suyas, se usan las de una función invocada por un servicio.
@@ -824,7 +796,7 @@ def generar(resumen: pd.DataFrame, metadatos: dict[str, Any], rutas: dict[str, s
         (1_000_000_000, "mil millones de ejecuciones (escala de un servicio masivo)"),
     ]
     for multiplicador, descripcion in escalas_peor:
-        co2 = peor.co2_kg_codecarbon_mean * multiplicador
+        co2 = peor.co2_kg_mean * multiplicador
         equivalencias_txt = ", ".join(
             f"{formato_numero(co2 / factor, 0)} {nombre}" for nombre, factor, _ in EQUIVALENCIAS
         )
@@ -884,11 +856,11 @@ def generar(resumen: pd.DataFrame, metadatos: dict[str, Any], rutas: dict[str, s
         if datos.empty:
             continue
         n_max = datos.n.max()
-        en_max = datos[datos.n == n_max].sort_values("co2_kg_codecarbon_mean")
+        en_max = datos[datos.n == n_max].sort_values("co2_kg_mean")
         if len(en_max) < 2:
             continue
         mejor, peor_e = en_max.iloc[0], en_max.iloc[-1]
-        factor = peor_e.co2_kg_codecarbon_mean / mejor.co2_kg_codecarbon_mean
+        factor = peor_e.co2_kg_mean / mejor.co2_kg_mean
         conclusiones.append(
             f"En **{EXPERIMENTOS[clave].titulo}** (n={int(n_max)}), "
             f"`{mejor.algoritmo}` emite **{formato_factor(factor)}×** menos CO₂ que "
@@ -991,9 +963,8 @@ def generar(resumen: pd.DataFrame, metadatos: dict[str, Any], rutas: dict[str, s
         f"scikit-learn {metadatos.get('scikit_learn', 'n/d')} — provee el clasificador de "
         "vecinos más cercanos y el generador del conjunto de datos sintético del cuarto "
         "experimento. <https://scikit-learn.org/stable/>.",
-        "Utilidad de consumo del sistema operativo (macOS) — es el sensor con el que se lee "
-        "la potencia real del procesador, tanto para la medición de §3.4 como para calibrar "
-        "los parámetros de la vía A de §3.3.",
+        "Utilidad de consumo del sistema operativo (macOS) — es el sensor del que se lee la "
+        "potencia real del procesador en este equipo (§3.4).",
     ]
     grupos.append(("Herramientas de medición", herramientas))
 

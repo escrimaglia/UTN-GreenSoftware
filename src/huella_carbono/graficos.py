@@ -75,10 +75,10 @@ def escalado_co2(resumen: pd.DataFrame, clave: str, nombre_archivo: str) -> str:
     for algoritmo, grupo in datos.groupby("algoritmo"):
         grupo = grupo.sort_values("n")
         complejidad = grupo.complejidad.iloc[0]
-        desvio = grupo.co2_kg_codecarbon_std.fillna(0.0)
+        desvio = grupo.co2_kg_std.fillna(0.0)
         ax.errorbar(
             grupo.n,
-            grupo.co2_kg_codecarbon_mean,
+            grupo.co2_kg_mean,
             yerr=desvio,
             marker="o",
             capsize=3,
@@ -115,7 +115,7 @@ def comparativa_barras(resumen: pd.DataFrame, clave: str, nombre_archivo: str) -
 
     for i, algoritmo in enumerate(algoritmos):
         serie = datos[datos.algoritmo == algoritmo].set_index("n").reindex(tamanios)
-        valores = serie.co2_kg_codecarbon_mean.to_numpy(dtype=float)
+        valores = serie.co2_kg_mean.to_numpy(dtype=float)
         ax.bar(
             x + i * ancho - 0.4 + ancho / 2,
             valores,
@@ -152,7 +152,7 @@ def tiempo_vs_co2(resumen: pd.DataFrame, nombre_archivo: str = "05_tiempo_vs_co2
     for clave, grupo in resumen.groupby("experimento"):
         ax.scatter(
             grupo.tiempo_s_mean,
-            grupo.co2_kg_codecarbon_mean,
+            grupo.co2_kg_mean,
             s=48,
             marker=marcadores.get(str(clave), "o"),
             alpha=0.85,
@@ -162,7 +162,7 @@ def tiempo_vs_co2(resumen: pd.DataFrame, nombre_archivo: str = "05_tiempo_vs_co2
         )
 
     x = resumen.tiempo_s_mean.to_numpy(dtype=float)
-    y = resumen.co2_kg_codecarbon_mean.to_numpy(dtype=float)
+    y = resumen.co2_kg_mean.to_numpy(dtype=float)
     valido = (x > 0) & (y > 0)
     if valido.sum() > 1:
         lx, ly = np.log10(x[valido]), np.log10(y[valido])

@@ -1,5 +1,5 @@
 {
-  "fecha": "2026-08-23 16:34:46",
+  "fecha": "2026-08-23 17:39:12",
   "plataforma": "macOS-26.5.2-arm64-arm-64bit",
   "procesador": "arm",
   "cpu_nucleos_logicos": 12,
@@ -17,32 +17,13 @@
   "pue": 1.0,
   "repeticiones": 3,
   "semilla": 42,
-  "modelo_potencia": {
-    "nombre_cpu": "Apple M2 Pro (12 núcleos)",
-    "p_idle_w": 0.049,
-    "p_max_w": 29.721,
-    "origen": "powermetrics",
-    "carga_calibracion_pct": 100.0,
-    "p_ram_w_por_gb": 0.1875
-  },
-  "calidad_knn": {
-    "2500": 0.968,
-    "5000": 0.953,
-    "10000": 0.922,
-    "20000": 0.96275
-  },
-  "hilos_blas": [
-    {
-      "biblioteca": "openmp",
-      "version": null,
-      "hilos": 12
-    }
-  ],
+  "calidad_knn": {},
+  "hilos_blas": [],
   "limite_hilos_entorno": {},
   "codecarbon_deteccion": {
     "cpu_model": "Apple M2 Pro",
-    "cpu_power_w": 4.018660714285715,
-    "segundos_deteccion_hardware": 2.85,
+    "cpu_power_w": 3.1337194444444445,
+    "segundos_deteccion_hardware": 2.89,
     "tdp_en_tabla_codecarbon": null,
     "tdp_por_defecto_codecarbon_w": 85.0,
     "archivo_tdp_codecarbon": "cpu_power.csv",
@@ -58,14 +39,7 @@
     "ram_power_w": 3.0,
     "os": "macOS-26.5.2-arm64-arm-64bit",
     "country": "Argentina",
-    "run_id": "4a5fda9a-e278-4d42-819a-e4f72f81e2f8"
+    "run_id": "bb911df1-b21f-4b01-b9f1-f826576766c7"
   },
-  "ventana_medicion_s": 3.0,
-  "linea_base": {
-    "segundos": 3.0047643330181018,
-    "carga_sistema": 0.017,
-    "ram_usada_gb": 6.2405853271484375,
-    "potencia_w": 1.7235337488403322,
-    "energia_kwh": 1.4385590931301136e-06
-  }
+  "ventana_medicion_s": 3.0
 }

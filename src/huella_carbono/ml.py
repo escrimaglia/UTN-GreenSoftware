@@ -92,7 +92,7 @@ def entrenar_y_predecir(estrategia: str) -> Callable[[EntradaKNN], np.ndarray]:
     `n_jobs` se deja en su valor por defecto (1) deliberadamente. El paralelismo de `brute`
     viene de los hilos de BLAS, que corren dentro de este proceso y por lo tanto los ve
     `psutil.Process().cpu_times()`. Con `n_jobs>1`, joblib lanzaría procesos hijos cuyo tiempo
-    de CPU el medidor propio no contabiliza, y la carga paralela aparecería en el informe como
+    de CPU no quedan atribuidos al proceso medido, y la carga paralela aparecería como
     la más limpia de todas.
     """
 

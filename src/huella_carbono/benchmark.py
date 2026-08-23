@@ -8,8 +8,8 @@ Para cada (experimento, algoritmo, n):
 
   1. Se valida que todas las variantes del experimento den el mismo resultado.
   2. Se hace una corrida de sondeo que sirve de warm-up y fija el tamaño del lote.
-  3. Se repiten R mediciones del lote con el medidor propio y R con CodeCarbon,
-     sobre exactamente el mismo trabajo.
+  3. Se repiten R mediciones del lote con CodeCarbon, cronometrando el mismo trabajo
+     que la herramienta está midiendo.
   4. Se vuelca cada repetición a `resultados/simulacion_huella_carbono.csv`, el único
      CSV del proyecto. El agregado (media y desvío estándar) se deriva en memoria.
 """
@@ -21,7 +21,6 @@ import json
 import os
 import platform
 import time
-from dataclasses import asdict
 from typing import Any
 
 import pandas as pd
@@ -30,7 +29,7 @@ import psutil
 from huella_carbono import config
 from huella_carbono.algoritmos import REGISTRO, validar_experimento
 from huella_carbono.config import EXPERIMENTOS
-from huella_carbono.medidor import MedidorCodeCarbon, MedidorPropio
+from huella_carbono.medidor import MedidorCodeCarbon, calcular_lote
 
 
 def metadatos_entorno() -> dict[str, Any]:
@@ -90,7 +89,6 @@ def metadatos_entorno() -> dict[str, Any]:
         "pue": config.PUE,
         "repeticiones": config.REPETICIONES,
         "semilla": config.SEMILLA,
-        "modelo_potencia": asdict(config.MODELO),
         "calidad_knn": calidad_knn,
         "hilos_blas": hilos_blas,
         # Hilos de BLAS: no se fijan a propósito, para medir el comportamiento real por
@@ -113,20 +111,11 @@ def ejecutar(
     claves = claves or list(EXPERIMENTOS)
     config.DIR_RESULTADOS.mkdir(parents=True, exist_ok=True)
 
-    propio = MedidorPropio()
-    print("Midiendo línea de base del sistema en reposo...")
-    base = propio.medir_linea_base()
-    print(
-        f"  carga en reposo: {base['carga_sistema'] * 100:.1f}%  "
-        f"potencia basal estimada: {base['potencia_w']:.2f} W\n"
-    )
-
     filas: list[dict[str, Any]] = []
 
     with MedidorCodeCarbon() as codecarbon_medidor:
         # La ventana de medición la fija el camino que quedó activo: leer la potencia del
-        # hardware exige que el muestreo caiga dentro del trabajo, estimarla no. El mismo
-        # lote lo usan las dos vías, para que midan exactamente el mismo trabajo.
+        # hardware exige que el muestreo caiga dentro del trabajo, estimarla no.
         lectura = codecarbon_medidor.lectura
         ventana = (
             config.DURACION_MINIMA_LOTE_MUESTREO_S
@@ -150,10 +139,9 @@ def ejecutar(
                 entrada = generar(n)
 
                 for nombre, funcion in variantes.items():
-                    lote = propio.calcular_lote(funcion, entrada, ventana)
+                    lote = calcular_lote(funcion, entrada, ventana)
 
                     for rep in range(1, repeticiones + 1):
-                        medicion, _ = propio.medir(funcion, entrada, lote=lote)
                         cc = codecarbon_medidor.medir(
                             f"{clave}_{nombre}_n{n}_r{rep}", funcion, entrada, lote=lote
                         )
@@ -165,21 +153,12 @@ def ejecutar(
                                 "n": n,
                                 "repeticion": rep,
                                 "ejecuciones_lote": lote,
-                                "tiempo_s": medicion.tiempo_s,
-                                "cpu_s": medicion.cpu_s,
-                                "utilizacion": medicion.utilizacion,
-                                "nucleos_activos": medicion.nucleos_activos,
-                                "memoria_pico_mb": medicion.memoria_pico_mb,
-                                "potencia_marginal_w": medicion.potencia_marginal_w,
-                                "energia_kwh_propio": medicion.energia_atribuible_kwh,
-                                "co2_kg_propio": medicion.co2_atribuible_kg,
-                                "energia_total_kwh_propio": medicion.energia_total_kwh,
-                                "co2_total_kg_propio": medicion.co2_total_kg,
-                                "tiempo_s_codecarbon": cc["tiempo_s"],
-                                "energia_kwh_codecarbon": cc["energia_kwh"],
-                                "co2_kg_codecarbon": cc["co2_kg"],
-                                "co2_kg_codecarbon_nativo": cc["co2_kg_nativo"],
-                                "potencia_cpu_w_codecarbon": cc["potencia_cpu_w"],
+                                "tiempo_s": cc["tiempo_s"],
+                                "tiempo_s_informado": cc["tiempo_s_informado"],
+                                "energia_kwh": cc["energia_kwh"],
+                                "co2_kg": cc["co2_kg"],
+                                "co2_kg_nativo": cc["co2_kg_nativo"],
+                                "potencia_cpu_w": cc["potencia_cpu_w"],
                             }
                         )
 
@@ -187,8 +166,7 @@ def ejecutar(
                     print(
                         f"  n={n:<6} {nombre:<16} {exp.variantes[nombre]:<16} "
                         f"lote={lote:<6} t={ult['tiempo_s']:.3e}s  "
-                        f"CO2(propio)={ult['co2_kg_propio']:.3e} kg  "
-                        f"CO2(codecarbon)={ult['co2_kg_codecarbon']:.3e} kg"
+                        f"CO2={ult['co2_kg']:.3e} kg"
                     )
             print()
 
@@ -197,7 +175,6 @@ def ejecutar(
         # La ventana efectiva depende de la fuente de potencia que quedó activa, así que se
         # registra: el informe la declara en lugar de suponer el valor por defecto.
         metadatos["ventana_medicion_s"] = ventana
-        metadatos["linea_base"] = base
 
     df = pd.DataFrame(filas)
     df.to_csv(config.CSV_SIMULACION, index=False)
@@ -214,16 +191,11 @@ def agregar(df: pd.DataFrame) -> pd.DataFrame:
     """Media y desvío estándar de las R repeticiones de cada (algoritmo, n)."""
     columnas = [
         "tiempo_s",
-        "cpu_s",
-        "utilizacion",
-        "nucleos_activos",
-        "potencia_marginal_w",
-        "memoria_pico_mb",
-        "energia_kwh_propio",
-        "co2_kg_propio",
-        "energia_kwh_codecarbon",
-        "co2_kg_codecarbon",
-        "co2_kg_codecarbon_nativo",
+        "tiempo_s_informado",
+        "energia_kwh",
+        "co2_kg",
+        "co2_kg_nativo",
+        "potencia_cpu_w",
     ]
     agrupado = df.groupby(["experimento", "algoritmo", "complejidad", "n"], as_index=False).agg(
         {**{c: ["mean", "std"] for c in columnas}, "ejecuciones_lote": "first"}

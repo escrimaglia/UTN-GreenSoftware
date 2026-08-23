@@ -159,76 +159,8 @@ PUE = 1.0
 # --------------------------------------------------------------------------------------
 
 
-@dataclass
-class ModeloPotencia:
-    """
-    Modelo lineal de potencia del CPU.
-
-        P(u) = P_idle + (P_max - P_idle) * u
-
-    donde u es la utilización agregada del CPU (0 = ocioso, 1 = todos los núcleos
-    saturados). Equivale a atribuir a cada núcleo activo una potencia marginal de
-    (P_max - P_idle) / n_nucleos.
-
-    Limitación conocida y declarada en el informe: el M2 Pro tiene núcleos de alto
-    rendimiento (P-cores) y de eficiencia (E-cores) con consumos muy distintos, por lo
-    que un modelo lineal en la utilización agregada es una aproximación. Para las
-    cargas de este proyecto (mayormente monohilo) el error es sistemático y afecta por igual
-    a todos los algoritmos comparados, así que no invalida la comparación relativa.
-    """
-
-    nombre_cpu: str = "Apple M2 Pro (12 núcleos)"
-    p_idle_w: float = 2.0
-    p_max_w: float = 34.0
-    origen: str = "referencia"  # "referencia" | "powermetrics"
-    # Carga del sistema durante la medición de P_max, en %. Sirve para poder afirmar en el
-    # informe que la calibración midió el chip saturado y no un solo núcleo.
-    carga_calibracion_pct: float | None = None
-
-    # Potencia de RAM en W por GB efectivamente utilizado.
-    # Criterio de CodeCarbon para sistemas ARM: 1.5 W por módulo DIMM, con un piso de
-    # 3.0 W (codecarbon/external/ram.py, _calculate_ram_power). Sobre 16 GB eso da
-    # 3.0 W / 16 GB = 0.1875 W/GB, que es el valor que se adopta acá para poder
-    # atribuir la RAM de forma proporcional al uso real en vez de como constante.
-    p_ram_w_por_gb: float = 3.0 / 16.0
-
-    def potencia_cpu(self, utilizacion: float) -> float:
-        """Potencia total del CPU (incluye el consumo basal) para una utilización dada."""
-        u = max(0.0, min(1.0, utilizacion))
-        return self.p_idle_w + (self.p_max_w - self.p_idle_w) * u
-
-    def potencia_cpu_marginal(self, utilizacion: float) -> float:
-        """Potencia atribuible al trabajo, es decir por encima del consumo basal."""
-        u = max(0.0, min(1.0, utilizacion))
-        return (self.p_max_w - self.p_idle_w) * u
-
-    def potencia_ram(self, gb: float) -> float:
-        return max(0.0, gb) * self.p_ram_w_por_gb
-
-
-MODELO = ModeloPotencia()
-
-
-# --------------------------------------------------------------------------------------
-# Clasificación de cargas por paralelismo
-# --------------------------------------------------------------------------------------
-
-# Umbral para considerar que una carga es multihilo: más de 1,5 núcleos activos en promedio.
-# Se elige 1,5 y no 1,0 porque una carga monohilo real mide algo por encima de un núcleo
-# (el muestreador de memoria, el recolector de basura), y muy por debajo de dos.
-NUCLEOS_MULTIHILO = 1.5
-
-
-def es_carga_multihilo(utilizacion: float, nucleos: int) -> bool:
-    """
-    Decide si una utilización media corresponde a una carga multihilo.
-
-    `utilizacion` es la fracción de la máquina usada (la que informa el medidor propio), así
-    que multiplicada por la cantidad de núcleos da los núcleos activos equivalentes. Existe
-    para que ni el informe ni los gráficos afirmen "monohilo" por texto fijo: la afirmación
-    se decide con el dato de cada corrida.
-    """
-    return utilizacion * nucleos > NUCLEOS_MULTIHILO
+# El modelo de potencia propio se describe en el informe (§3.3) como una opción de
+# cálculo, pero el proyecto no lo implementa: la medición es de CodeCarbon.
 
 
 # --------------------------------------------------------------------------------------
@@ -237,8 +169,6 @@ def es_carga_multihilo(utilizacion: float, nucleos: int) -> bool:
 
 SEMILLA = 42  # semilla fija: todos los algoritmos reciben exactamente la misma entrada
 REPETICIONES = 3  # cada (algoritmo, n) se corre R veces -> media y desvío estándar
-SEGUNDOS_LINEA_BASE = 3.0  # duración de la medición de consumo en reposo
-INTERVALO_MUESTREO_S = 0.1  # frecuencia del muestreador de memoria (10 Hz)
 
 # Medición por lotes.
 #
