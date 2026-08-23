@@ -1,0 +1,25 @@
+{
+  "descripcion": "Factores para traducir kgCO2eq a magnitudes tangibles en el informe. Los de tipo eléctrico se expresan como consumo en kWh y se convierten con el factor de emisión vigente del proyecto, para que nunca queden desfasados del FE en uso.",
+  "electricas": [
+    {
+      "nombre": "cargas completas de un smartphone",
+      "consumo_kwh": 0.01,
+      "detalle": "batería de ~10 Wh cargada desde la red"
+    }
+  ],
+  "vehiculares": [
+    {
+      "nombre": "km recorridos en auto",
+      "consumo_l_por_100km": 7.9,
+      "fuente_consumo": "GFEI / ONU Medio Ambiente, estudio de línea de base de eficiencia de vehículos livianos en Argentina (2018), sobre los vehículos registrados entre 2006 y 2017",
+      "url_consumo": "https://www.globalfueleconomy.org/news/event-showcases-argentina-s-new-comparative-vehicle-efficiency-label-and-electric-shift",
+      "combustible": "Nafta Grado 2 (Súper) con bioetanol 12%, CO₂ fósil",
+      "factor_kg_co2_por_litro": 1.9693,
+      "co2_biogenico_kg_por_litro": 0.1795,
+      "fuente_factor": "Sistema Nacional de Inventario de GEI de Argentina (SNIGEIAR), Factores de Emisión para huella de carbono 2025, Subsecretaría de Ambiente de la Nación, Tabla 2 «Combustibles - Transporte»",
+      "url_factor": "https://inventariogei.ambiente.gob.ar/files/Factores_de_Emision_SNIGEIAR_para_HC_2025.pdf",
+      "descargado": "2026-08-22",
+      "nota": "El factor por km se calcula como consumo × factor del combustible, con datos argentinos en ambos términos. Se cuenta solo el CO₂ fósil: la nafta argentina lleva 12% de bioetanol por norma y su CO₂ biogénico (0,1795 kgCO₂/L, es decir 14,2 gCO₂/km) se informa aparte según la práctica del inventario nacional."
+    }
+  ]
+}
