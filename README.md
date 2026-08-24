@@ -104,7 +104,7 @@ declara.
 
 | Plataforma | Cómo se lee la potencia | Requisito | Verificado |
 |---|---|---|---|
-| macOS con Apple Silicon | utilidad de consumo del sistema | `sudo` disponible | sí, en este equipo |
+| macOS con Apple Silicon | utilidad de consumo del sistema | privilegios de administrador | sí, en este equipo |
 | Linux | contadores del procesador | ninguno | no probado |
 | Windows 11 | medidor de energía del sistema | equipo físico, no virtualizado | no probado |
 | cualquiera, si no hay lectura | se estima a partir de la carga | — | sí, en este equipo |
@@ -112,17 +112,17 @@ declara.
 Las dos filas marcadas «no probado» son lo que la herramienta de medición intenta en esas
 plataformas según su documentación; este proyecto sólo se corrió en macOS.
 
-En macOS hay que autorizar `sudo` en la misma terminal antes de correr:
-
-```bash
-sudo -v
-uv run huella-carbono --completo
-```
-
-Sin eso, la corrida no falla: cae a la estimación, lo deja registrado en
-`resultados/metadatos.json` y el informe declara cuál de los dos caminos se usó. La
+No hay nada que preparar: la corrida resuelve sola de dónde sacar la potencia. Si el
+equipo no permite leerla, no falla —cae a la estimación, lo deja registrado en
+`resultados/metadatos.json` y el informe declara cuál de los dos caminos se usó—. La
 diferencia importa: con estimación, los valores absolutos se calculan a partir de un
 consumo nominal genérico de 85 W, propio de una computadora de escritorio.
+
+La primera línea de la corrida dice cuál quedó activo:
+
+```
+potencia del CPU: lectura directa (apple_powermetrics)  |  ventana de medición >= 3.0 s
+```
 
 ### Correr un experimento en particular
 

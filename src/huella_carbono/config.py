@@ -122,7 +122,6 @@ FUENTE_FACTOR_EMISION = INTENSIDAD_CARBONO["fuente"]
 REFERENCIA_FACTOR_OFICIAL = INTENSIDAD_CARBONO.get("referencia_factor_oficial", {})
 
 # --- valor interno de CodeCarbon, sólo como referencia y contraste en el informe ---
-RUTA_DATASET_EMISIONES = ruta_dataset_emisiones()
 REGISTRO_PAIS = cargar_matriz_electrica()
 FACTOR_EMISION_CODECARBON_G_KWH = float(REGISTRO_PAIS["carbon_intensity"])
 ANIO_FACTOR_EMISION_CODECARBON = int(REGISTRO_PAIS["year"])
@@ -214,13 +213,9 @@ class Experimento:
     unidad_n: str = "n"
     notas: str = ""
     variantes: dict[str, str] = field(default_factory=dict)  # algoritmo -> complejidad
-    # Pendiente esperada del ajuste log-log de CO2 contra n. `None` indica que el
-    # algoritmo no sigue una ley de potencia (crecimiento exponencial), en cuyo caso
-    # el ajuste no es interpretable y el informe lo declara así.
-    # Para O(n log n) el valor esperado no es exactamente 1: la pendiente local de
-    # n·log(n) es 1 + 1/ln(n), que en el rango medido ronda 1,1.
-    exponente_esperado: dict[str, float | None] = field(default_factory=dict)
-    notas_escalado: str = ""
+    # Qué hace cada variante, en lenguaje llano y en tres líneas como máximo: el informe lo
+    # inserta antes del gráfico de cada experimento, para que se entienda qué se comparó.
+    descripciones: dict[str, str] = field(default_factory=dict)
     # Escalas con las que §5.3 extrapola las emisiones de este experimento. El default
     # (un millón y mil millones de ejecuciones) tiene sentido para una función invocada por
     # un servicio; para un entrenamiento de modelo no, y cada experimento puede declarar las
@@ -248,10 +243,21 @@ EXPERIMENTOS: dict[str, Experimento] = {
             "merge_sort": "O(n log n)",
             "timsort_nativo": "O(n log n) en C",
         },
-        exponente_esperado={
-            "bubble_sort": 2.0,
-            "merge_sort": 1.12,
-            "timsort_nativo": 1.12,
+        descripciones={
+            "bubble_sort": (
+                "Compara elementos vecinos y los intercambia si están desordenados, y "
+                "repite el recorrido hasta que no queda ningún intercambio por hacer. Es el "
+                "método más simple de escribir y el que más trabajo hace."
+            ),
+            "merge_sort": (
+                "Parte la lista en mitades hasta quedarse con elementos sueltos y después "
+                "las va uniendo de a pares, ya ordenadas. Escrito en Python."
+            ),
+            "timsort_nativo": (
+                "El ordenamiento que trae Python de fábrica, escrito en C. Usa la misma idea "
+                "de unir mitades ordenadas, pero además detecta y aprovecha los tramos que "
+                "ya venían en orden."
+            ),
         },
     ),
     "fibonacci": Experimento(
@@ -273,16 +279,21 @@ EXPERIMENTOS: dict[str, Experimento] = {
             "fib_memoizado": "O(n)",
             "fib_iterativo": "O(n)",
         },
-        exponente_esperado={
-            "fib_recursivo": None,  # exponencial: no es una ley de potencia
-            "fib_memoizado": 1.0,
-            "fib_iterativo": 1.0,
+        descripciones={
+            "fib_recursivo": (
+                "Para obtener un término suma los dos anteriores, y para cada uno de ellos "
+                "vuelve a empezar de cero, sin recordar nada. Termina recalculando los "
+                "mismos valores una cantidad enorme de veces."
+            ),
+            "fib_memoizado": (
+                "Hace lo mismo, pero anota cada resultado la primera vez que lo calcula y "
+                "después lo reutiliza en lugar de volver a calcularlo."
+            ),
+            "fib_iterativo": (
+                "Recorre la sucesión una sola vez, de abajo hacia arriba, guardando "
+                "únicamente los dos últimos valores."
+            ),
         },
-        notas_escalado=(
-            "Las variantes O(n) miden en el orden del microsegundo, donde el costo fijo "
-            "de invocar la función pesa tanto como el trabajo útil; por eso su exponente "
-            "medido queda por debajo de 1."
-        ),
     ),
     "matrices": Experimento(
         clave="matrices",
@@ -302,20 +313,16 @@ EXPERIMENTOS: dict[str, Experimento] = {
             "matmul_python": "O(n³) en Python",
             "matmul_numpy": "O(n³) vectorizado",
         },
-        exponente_esperado={
-            "matmul_python": 3.0,
-            "matmul_numpy": 3.0,
+        descripciones={
+            "matmul_python": (
+                "Multiplica las matrices elemento por elemento, con tres bucles anidados "
+                "escritos en Python. Cada operación pasa por el intérprete."
+            ),
+            "matmul_numpy": (
+                "Delega la misma multiplicación a una biblioteca numérica compilada, que "
+                "opera sobre bloques de datos a la vez en lugar de número por número."
+            ),
         },
-        notas_escalado=(
-            "Ambas variantes reciben listas de listas y devuelven listas de listas, para "
-            "que la comparación sea justa. En `matmul_numpy` eso implica convertir la "
-            "entrada a su formato interno y devolver el resultado al formato original: dos "
-            "conversiones que recorren toda la matriz, es decir dos operaciones O(n²) "
-            "que en el rango medido pesan más que la multiplicación O(n³) en sí. De ahí que su "
-            "exponente medido se acerque a 2 y no a 3. El resultado es en sí mismo un "
-            "hallazgo: al vectorizar, el cuello de botella se corre del cálculo hacia la "
-            "conversión de datos."
-        ),
     ),
     "aprendizaje_knn": Experimento(
         clave="aprendizaje_knn",
@@ -329,19 +336,37 @@ EXPERIMENTOS: dict[str, Experimento] = {
         tamanios_rapido=[2000, 4000],
         unidad_n="muestras del dataset",
         notas=(
-            "Las tres variantes son el mismo clasificador de vecinos más cercanos (k=31) sobre el "
-            "mismo dataset sintético, con distinta estrategia de búsqueda de vecinos. Se mide "
-            "entrenamiento e inferencia como una sola unidad de trabajo, y las tres devuelven "
-            "predicciones idénticas, verificado por aserción. La diferencia relevante es de "
-            "paralelismo: `brute` resuelve la búsqueda con multiplicaciones de matrices y usa "
-            "todos los núcleos, `ball_tree` es estrictamente monohilo y `kd_tree` paraleliza "
-            "parte de su trabajo de forma irregular. El efecto de esa diferencia sobre el "
-            "tiempo y las emisiones se analiza en §5.1."
+            "El modelo es un **clasificador de vecinos más cercanos**, que no deduce ninguna "
+            "regla: para decidir a qué categoría pertenece un dato nuevo, busca los 31 datos "
+            "más parecidos entre los que ya conoce y le asigna la categoría que predomina "
+            "entre esos 31. «Parecido» quiere decir cercano, midiendo la distancia entre las "
+            "20 características que describen a cada dato.\n\n"
+            "Lo costoso es justamente encontrar esos 31 vecinos entre miles de datos, y es "
+            "ahí donde se diferencian las tres variantes. Se mide el entrenamiento y la "
+            "clasificación como una sola unidad de trabajo, y las tres devuelven exactamente "
+            "las mismas predicciones."
         ),
         variantes={
             "knn_brute": "O(n·m·d) vectorizado",
             "knn_kd_tree": "O(n·d) + O(n log n)",
             "knn_ball_tree": "O(n·d) + O(n log n)",
+        },
+        descripciones={
+            "knn_brute": (
+                "Mide la distancia del dato nuevo contra todos los datos conocidos, uno por "
+                "uno, y se queda con los 31 más cercanos. No descarta nada, pero hace esas "
+                "cuentas de a bloques y reparte el trabajo entre todos los núcleos."
+            ),
+            "knn_kd_tree": (
+                "Antes de clasificar, acomoda los datos conocidos dividiendo el espacio con "
+                "cortes rectos, como una grilla irregular. Al buscar los vecinos descarta de "
+                "golpe las zonas que quedaron lejos, en lugar de recorrer dato por dato."
+            ),
+            "knn_ball_tree": (
+                "Hace lo mismo que `knn_kd_tree` —descartar zonas enteras en vez de recorrer "
+                "todo—, pero agrupando los datos conocidos en burbujas en lugar de cortarlos "
+                "con líneas rectas. Usa un solo núcleo."
+            ),
         },
         # El ajuste del informe se hace sobre CO2, no sobre tiempo, y para este experimento
         # los dos no coinciden. El trabajo es O(n·m·d) con m = 0,2·n, o sea cuadrático en n
@@ -350,22 +375,6 @@ EXPERIMENTOS: dict[str, Experimento] = {
         # `brute` reparte ese trabajo cuadrático entre todos los núcleos, así que su TIEMPO
         # crece más despacio, pero la energía cuenta núcleo-segundos y su exponente de CO2
         # vuelve a acercarse a 2.
-        exponente_esperado={
-            "knn_brute": 2.0,
-            "knn_kd_tree": 2.0,
-            "knn_ball_tree": 2.0,
-        },
-        notas_escalado=(
-            "Las tres variantes hacen trabajo cuadrático en n: con m = 0,2·n puntos de "
-            "prueba, tanto la búsqueda exhaustiva como la consulta de los árboles crecen con "
-            "n·m. Los árboles no alcanzan su O(log n) por consulta porque en 20 dimensiones "
-            "el volumen se reparte de tal forma que casi ningún nodo se puede descartar. La "
-            "razón por la que `knn_brute` se queda tan por debajo de 2 es otra: reparte el "
-            "trabajo entre todos los núcleos, y lo aprovecha mejor a medida que el problema "
-            "crece, así que sus emisiones aumentan más despacio que el tamaño. Los dos "
-            "árboles, que no paralelizan de forma estable, quedan más cerca del exponente "
-            "teórico."
-        ),
         escalas=[
             (365, "un reentrenamiento diario durante un año"),
             (8_760, "un reentrenamiento por hora durante un año"),

@@ -11,8 +11,6 @@ el reporte no pueda quedar desincronizado de los datos medidos.
 
 from __future__ import annotations
 
-import math
-
 from typing import Any
 
 import pandas as pd
@@ -22,9 +20,13 @@ from huella_carbono.config import EQUIVALENCIAS, EXPERIMENTOS
 
 
 def formato_cientifico(valor: float, decimales: int = 3) -> str:
+    """
+    Notación científica con coma decimal, para que todo el informe use la misma convención
+    tipográfica del español y no convivan dos separadores en la misma línea.
+    """
     if pd.isna(valor):
         return "—"
-    return f"{valor:.{decimales}e}"
+    return f"{valor:.{decimales}e}".replace(".", ",")
 
 
 def formato_factor(valor: float) -> str:
@@ -177,70 +179,6 @@ def seccion_experimento(
                     )
                     partes.append("")
 
-    # Exponente de escalado empírico: ajuste log-log de CO2 en función de n.
-    if datos.n.nunique() >= 3:
-        import numpy as np
-
-        ajustes = []
-        for algoritmo, grupo in datos.groupby("algoritmo"):
-            grupo = grupo[(grupo.n > 0) & (grupo.co2_kg_mean > 0)]
-            if len(grupo) < 3:
-                continue
-            pendiente = float(
-                np.polyfit(np.log(grupo.n), np.log(grupo.co2_kg_mean), 1)[0]
-            )
-            esperado = exp.exponente_esperado.get(str(algoritmo), None)
-
-            if esperado is None:
-                # Un crecimiento exponencial no es una ley de potencia: la pendiente
-                # log-log no es constante y el número no sería interpretable. Se informa
-                # en su lugar el factor de crecimiento por unidad de n, que sí lo es.
-                g = grupo.sort_values("n")
-                base = float(
-                    (g.co2_kg_mean.iloc[-1] / g.co2_kg_mean.iloc[0])
-                    ** (1.0 / (g.n.iloc[-1] - g.n.iloc[0]))
-                )
-                ajustes.append(
-                    [
-                        f"`{algoritmo}`",
-                        complejidad_de(algoritmo, grupo.complejidad.iloc[0]),
-                        "no aplica",
-                        f"crecimiento exponencial: ×{formato_numero(base)} por cada unidad de n "
-                        f"(el número áureo φ ≈ 1,618 es el valor teórico)",
-                    ]
-                )
-                continue
-
-            desvio_abs = abs(pendiente - esperado)
-            veredicto = "compatible con la teoría" if desvio_abs <= 0.35 else "se aparta"
-            ajustes.append(
-                [
-                    f"`{algoritmo}`",
-                    complejidad_de(algoritmo, grupo.complejidad.iloc[0]),
-                    formato_numero(pendiente),
-                    f"esperado ≈ {formato_numero(esperado)} — {veredicto} (desvío {formato_numero(desvio_abs)})",
-                ]
-            )
-
-        if ajustes:
-            partes.append(
-                "**Cómo escalan las emisiones.** Al duplicar el tamaño del problema, ¿cuánto "
-                "más emite cada algoritmo? Se resume en un exponente (criterio de lectura en "
-                "§4.0): si la complejidad teórica gobierna las emisiones, el exponente medido "
-                "debe reproducirla."
-            )
-            partes.append("")
-            partes.append(
-                tabla_markdown(
-                    ajustes,
-                    ["algoritmo", "complejidad teórica", "exponente medido", "contraste"],
-                )
-            )
-            partes.append("")
-            if exp.notas_escalado:
-                partes.append(f"> {exp.notas_escalado}")
-                partes.append("")
-
     calidad = (metadatos or {}).get("calidad_knn") or {}
     if calidad and clave == "aprendizaje_knn":
         partes.append(
@@ -256,6 +194,17 @@ def seccion_experimento(
                 ["muestras", "exactitud sobre el conjunto de prueba"],
             )
         )
+        partes.append("")
+
+    if exp.descripciones:
+        partes.append("**Qué hace cada variante.**")
+        partes.append("")
+        # En el orden en que las declara el experimento, no el alfabético de la tabla: las
+        # descripciones están escritas para leerse en ese orden.
+        medidos = set(str(x) for x in datos.algoritmo.unique())
+        for algoritmo, descripcion in exp.descripciones.items():
+            if algoritmo in medidos:
+                partes.append(f"- **`{algoritmo}`** — {descripcion}")
         partes.append("")
 
     if grafico:
@@ -395,7 +344,7 @@ def generar(resumen: pd.DataFrame, metadatos: dict[str, Any], rutas: dict[str, s
     a("según dónde se ejecute**. Corriéndolo en una red mayormente hidroeléctrica o")
     a("nuclear, las emisiones serían una fracción de las calculadas acá.")
     a("")
-    a(f"Se usa **PUE = {config.PUE}** porque el experimento corre en una notebook, sin")
+    a(f"Se usa **PUE = {formato_numero(config.PUE, 1)}** porque el experimento corre en una notebook, sin")
     a("infraestructura de refrigeración externa. En un datacenter el PUE típico está entre")
     a("1,1 y 1,6 —rango de referencia de la industria, no medido en este trabajo—, lo que")
     a("multiplicaría todos los resultados por ese factor.")
@@ -416,7 +365,7 @@ def generar(resumen: pd.DataFrame, metadatos: dict[str, Any], rutas: dict[str, s
                     f"{metadatos['cpu_nucleos_logicos']} lógicos / "
                     f"{metadatos['cpu_nucleos_fisicos']} físicos",
                 ],
-                ["RAM", f"{metadatos['ram_total_gb']} GB"],
+                ["RAM", f"{formato_numero(metadatos['ram_total_gb'], 1)} GB"],
                 ["Python", metadatos["python"]],
                 ["NumPy", metadatos["numpy"]],
                 ["CodeCarbon", metadatos["codecarbon"]],
@@ -438,26 +387,42 @@ def generar(resumen: pd.DataFrame, metadatos: dict[str, Any], rutas: dict[str, s
     a("")
     a("### 3.2 Protocolo de medición")
     a("")
-    a("1. **Verificación de equivalencia.** Antes de medir, se comprueba por aserción que")
-    a("   todas las variantes del experimento devuelvan el mismo resultado. Comparar la")
-    a("   huella de algoritmos que no resuelven lo mismo no tendría validez.")
-    a("2. **Warm-up y dimensionado del lote.** Se hace una corrida de sondeo que calienta")
-    a("   cachés e intérprete y sirve para fijar el tamaño del lote.")
-    a("3. **Medición por lotes.** Varios de estos algoritmos terminan en millonésimas de")
-    a("   segundo, mucho menos de lo que tarda cualquier instrumento en tomar una lectura de")
-    a("   consumo. Medir una sola ejecución no daría una cifra interpretable. Por")
-    a(f"   eso se ejecuta el algoritmo K veces dentro de la ventana medida, con K")
-    a(f"   autoajustado para que el lote dure al menos "
-      f"{formato_numero(metadatos.get('ventana_medicion_s', config.DURACION_MINIMA_LOTE_S), 1)} s "
-      f"—la ventana que pide la fuente de potencia de esta corrida (§3.4)—, y")
-    a("   luego se divide por K. Es el criterio habitual para cronometrar operaciones muy")
-    a("   rápidas. El tamaño del lote se calibra con una corrida de prueba previa, porque la")
-    a("   primera ejecución de un algoritmo siempre es más lenta que las siguientes. Para las cargas que ya superan esa ventana por sí solas —el entrenamiento")
-    a("   del modelo en los tamaños grandes— K queda en 1 y se mide la ejecución individual;")
-    a("   el tamaño de lote de cada punto queda registrado en los datos de la corrida.")
-    a(f"4. **Repeticiones.** Cada punto se mide {metadatos['repeticiones']} veces; se")
-    a("   reportan media y dispersión.")
+    a("Cada **punto de medición** es una combinación de algoritmo y tamaño de entrada, y")
+    a("corresponde a una fila de las tablas de §4. Con cuatro experimentos y sus variantes")
+    a(f"son {len(resumen)} puntos. Cada uno se mide así:")
     a("")
+    a("1. **Se verifica la equivalencia.** Antes de medir se comprueba por aserción que todas")
+    a("   las variantes del experimento devuelvan el mismo resultado. Comparar la huella de")
+    a("   algoritmos que no resuelven lo mismo no tendría validez.")
+    a("2. **Se calcula el tamaño del lote.** Varios de estos algoritmos terminan en")
+    a("   millonésimas de segundo, mucho menos de lo que tarda un sensor en dar una lectura")
+    a("   de consumo, así que no se mide una ejecución aislada: se mide un **lote de K")
+    a(f"   ejecuciones seguidas**, con K elegido para que el lote dure al menos "
+      f"{formato_numero(metadatos.get('ventana_medicion_s', config.DURACION_MINIMA_LOTE_S), 1)} s (§3.4).")
+    a("   K se calcula con una corrida de prueba previa, que además funciona como")
+    a("   calentamiento: la primera ejecución de un algoritmo siempre es más lenta que las")
+    a("   siguientes.")
+    a("3. **Se mide el lote y se divide por K.** Lo que se informa es entonces el costo de")
+    a("   *una* ejecución, aunque nunca se haya medido una sola por separado. Cuando un")
+    a("   algoritmo ya dura más que la ventana por sí solo —el entrenamiento del modelo en")
+    a("   los tamaños grandes— K queda en 1.")
+    a(f"4. **Se repite {metadatos['repeticiones']} veces** y se informan el promedio y la dispersión entre esas")
+    a(f"   {metadatos['repeticiones']} mediciones.")
+    a("")
+    a("Un ejemplo concreto de esta corrida, para fijar la idea: el algoritmo más rápido del")
+    ejemplo = None
+    if mediciones is not None and "ejecuciones_lote" in mediciones:
+        fila = mediciones.loc[mediciones.ejecuciones_lote.idxmax()]
+        ejemplo = (str(fila.algoritmo), int(fila.n), int(fila.ejecuciones_lote))
+    if ejemplo:
+        nombre_alg, n_alg, lote_alg = ejemplo
+        a(f"banco, `{nombre_alg}`, se midió en lotes de "
+          f"**{formato_numero(lote_alg, 0)} ejecuciones**; con "
+          f"{metadatos['repeticiones']} repeticiones,")
+        a(f"detrás de esa fila de la tabla hay "
+          f"{formato_numero(lote_alg * int(metadatos['repeticiones']), 0)} ejecuciones reales del algoritmo.")
+    a("")
+
     a("### 3.3 Otra opción de cálculo: un modelo propio")
     a("")
     a("Existe una alternativa a usar una herramienta de medición: deducir la potencia a")
@@ -552,41 +517,81 @@ def generar(resumen: pd.DataFrame, metadatos: dict[str, Any], rutas: dict[str, s
     a("")
     a("### 4.0 Cómo leer las tablas")
     a("")
-    a("- **energía** y **CO₂** corresponden a **una sola ejecución** del algoritmo. El CO₂")
-    a("  sale de esa energía con el factor de emisión de §2. Cuánta confianza merecen estas")
-    a("  cifras se analiza en §5.2.")
-    a("- **disp.** es cuánto varían entre sí las tres repeticiones del mismo punto. Por")
-    a("  debajo del 1% la medición es reproducible. Hay dos motivos por los que un punto")
-    a("  puede aparecer con dispersión alta, y ninguno invalida el promedio: en las variantes")
-    a("  que reparten su trabajo entre varios núcleos, cuántos se activan cambia de una")
-    a("  repetición a otra —eso es comportamiento del algoritmo—; y en los algoritmos más")
-    a("  rápidos pesa más el tiempo que consume tomar la lectura de consumo (§5.2), que no")
-    a("  es el mismo en cada repetición.")
-    a("- El **exponente medido** resume cuánto crecen las emisiones cuando crece el tamaño")
-    a("  del problema: un exponente 2 significa que al duplicar el tamaño las emisiones se")
-    a("  cuadruplican. Se obtiene ajustando una recta a los datos en escala logarítmica. Si la")
-    a("  complejidad teórica realmente gobierna las emisiones, un algoritmo O(n²) debe dar")
-    a("  ≈ 2 y uno O(n³), ≈ 3. Para O(n log n) el valor esperado no es exactamente 1: la")
-    claves_nlogn = [
-        clave
-        for clave, exp in EXPERIMENTOS.items()
-        if any("log" in complejidad for complejidad in exp.variantes.values())
-    ]
-    ns_nlogn = sorted(
-        {int(v) for v in resumen[resumen.experimento.isin(claves_nlogn)].n.unique() if v > 1}
-    )
-    a("  pendiente local de n·log(n) es 1 + 1/ln(n): sobre los tamaños medidos para esos")
-    if ns_nlogn:
-        a(f"  algoritmos (n de {formato_numero(min(ns_nlogn), 0)} a "
-          f"{formato_numero(max(ns_nlogn), 0)}) va de "
-          f"{formato_numero(1 + 1 / math.log(max(ns_nlogn)), 2)} a "
-          f"{formato_numero(1 + 1 / math.log(min(ns_nlogn)), 2)}. Un")
-    else:
-        a("  algoritmos ronda 1,1. Un")
-    a("  crecimiento exponencial no sigue una ley de potencia, así que para ese caso el")
-    a("  ajuste no se informa y se reporta en su lugar el factor de crecimiento por unidad")
-    a("  de n.")
+    a(f"**Cada fila es un punto de medición** (§3.2) y los valores son el promedio de sus")
+    a(f"{metadatos['repeticiones']} mediciones, expresados **por ejecución** del algoritmo.")
     a("")
+    a(
+        tabla_markdown(
+            [
+                ["`n`", "tamaño de la entrada, en las unidades que declara cada experimento"],
+                [
+                    "`algoritmo`",
+                    "la variante medida; todas las del experimento devuelven el mismo resultado",
+                ],
+                ["`complejidad`", "la complejidad teórica del algoritmo"],
+                ["`tiempo [s]`", "cuánto tarda una ejecución"],
+                [
+                    "`energía [kWh]`",
+                    "cuánta electricidad consume una ejecución. Es la magnitud que se mide (§3.4)",
+                ],
+                [
+                    "`CO₂ [kg]`",
+                    f"esa energía convertida a emisiones con el factor de "
+                    f"{formato_numero(config.FACTOR_EMISION_AR, 3)} kgCO₂eq/kWh de §2",
+                ],
+                [
+                    "`disp.`",
+                    "cuánto difieren entre sí las repeticiones del punto: el desvío estándar "
+                    "como porcentaje del promedio",
+                ],
+            ],
+            ["Columna", "Qué es"],
+        )
+    )
+    a("")
+    a("Sobre la dispersión: por debajo del 1% la medición es reproducible. Un valor alto no")
+    a("invalida el promedio, y puede venir de dos lados: de las variantes que reparten su")
+    a("trabajo entre varios núcleos, donde cuántos se activan cambia de una repetición a")
+    a("otra, o del tiempo que consume tomar la lectura de consumo (§5.2), que pesa más en los")
+    a("algoritmos más rápidos.")
+    a("")
+    # Ejemplo trabajado sobre una fila real de la corrida: es la única forma de que quede
+    # sin ambigüedad qué representa cada número, y al derivarse de los datos no puede
+    # quedar desfasado.
+    if mediciones is not None and not resumen.empty:
+        clave_1 = next((c for c in EXPERIMENTOS if c in presentes), None)
+        datos_1 = resumen[resumen.experimento == clave_1].sort_values(["n", "algoritmo"])
+        if clave_1 and not datos_1.empty:
+            f = datos_1.iloc[0]
+            reps = mediciones[
+                (mediciones.algoritmo == f.algoritmo) & (mediciones.n == f.n)
+            ]
+            lote = int(reps.ejecuciones_lote.iloc[0]) if not reps.empty else 1
+            unidad = EXPERIMENTOS[str(clave_1)].unidad_n
+            a("**Qué dice exactamente una fila.** Tomando la primera del primer experimento —")
+            a(f"`{f.algoritmo}`, {unidad} = {formato_numero(int(f.n), 0)}—, cada número significa esto:")
+            a("")
+            a(f"- **`n` = {formato_numero(int(f.n), 0)}**: la entrada sobre la que se corrió tenía ese tamaño.")
+            a(f"- **`complejidad` = {f.complejidad}**: etiqueta teórica declarada por el proyecto. No se")
+            a("  midió ni se derivó de los datos.")
+            a(f"- **`tiempo [s]` = {formato_cientifico(f.tiempo_s_mean)}**: se ejecutó el algoritmo")
+            a(f"  {formato_numero(lote, 0)} veces seguidas y se cronometró el conjunto; el total se dividió por")
+            a(f"  {formato_numero(lote, 0)}. Eso se hizo {metadatos['repeticiones']} veces y se promediaron los "
+              f"{metadatos['repeticiones']} cocientes.")
+            a(f"- **`energía [kWh]` = {formato_cientifico(f.energia_kwh_mean)}**: durante esas mismas")
+            a(f"  {formato_numero(lote, 0)} ejecuciones se integró la potencia leída del procesador más la")
+            a(f"  atribuida a la memoria, sobre toda la ventana. El total se dividió por "
+              f"{formato_numero(lote, 0)} y se")
+            a(f"  promediaron las {metadatos['repeticiones']} mediciones.")
+            a(f"- **`CO₂ [kg]` = {formato_cientifico(f.co2_kg_mean)}**: la energía anterior multiplicada por")
+            a(f"  {formato_numero(config.FACTOR_EMISION_AR, 3)}. No es una medición independiente: es la misma cifra en otra unidad.")
+            if len(reps) > 1:
+                valores = ", ".join(formato_cientifico(v) for v in reps.co2_kg)
+                a(f"- **`disp.` = ±{formato_numero(f.co2_kg_std / f.co2_kg_mean * 100, 1)}%**: el desvío estándar de los "
+                  f"{len(reps)} valores de CO₂ medidos")
+                a(f"  ({valores}), dividido por su promedio.")
+            a("")
+
     for clave in EXPERIMENTOS:
         seccion = seccion_experimento(clave, resumen, rutas.get(clave), metadatos)
         if seccion:
