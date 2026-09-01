@@ -82,17 +82,18 @@ Corrido y verificado en macOS con Apple Silicon; en Linux y Windows no se verifi
 ### Correr el banco de pruebas
 
 ```bash
-uv run huella-carbono --completo   # los 4 experimentos, todos los tamaños (~12 min)
+uv run huella-carbono --completo   # los 4 experimentos, todos los tamaños (~11 min)
 uv run huella-carbono --rapido     # los 4 experimentos con tamaños reducidos (~6 min)
 ```
 
 `--completo` es el modo por defecto: `uv run huella-carbono` sin argumentos hace lo mismo.
 Cada corrida sobrescribe `resultados/` e `INFORME.md`.
 
-Los tiempos son aproximados y los domina la ventana de medición, no el trabajo de los
-algoritmos: leer la potencia del hardware exige al menos 3 s por punto, y son 42
-configuraciones en el modo completo y 22 en el rápido. Cuando la potencia se estima en
-lugar de medirse basta con 0,5 s y la corrida completa baja a unos 2,5 min.
+Los tiempos los domina la ventana de medición, no el trabajo de los algoritmos: leer la
+potencia del hardware exige al menos 3 s por punto medido, y son 42 configuraciones en el
+modo completo y 22 en el rápido. Por eso el tamaño de las entradas casi no cambia la
+duración total. Cuando la potencia se estima en lugar de medirse basta con 0,5 s por punto
+y la corrida completa baja a unos 2,5 min.
 
 ### Medir la potencia en lugar de estimarla
 
@@ -191,14 +192,14 @@ filas: 42 configuraciones —cada combinación de algoritmo y tamaño— por 3 r
 | `tiempo_s` | segundos por ejecución, cronometrados alrededor del trabajo |
 | `tiempo_s_informado` | la duración que informa la herramienta, que incluye lo que ella tarda en leer la potencia. Se guarda para que esa diferencia quede a la vista |
 | `energia_kwh`, `co2_kg` | el consumo y las emisiones por ejecución. **Son las cifras del informe** |
-| `co2_kg_nativo` | el CO₂ que la herramienta calcularía con su propia tabla de factores de emisión, en lugar del de §2 del informe |
+| `co2_kg_nativo` | el CO₂ que la herramienta calcularía con su propia tabla de factores de emisión, en lugar del de secc 2 del informe |
 | `potencia_cpu_w` | la potencia de procesador registrada en esa medición |
 
 ## Cómo funciona
 
 **El proyecto se basa en CodeCarbon**, la herramienta estándar de la industria, en modo
 offline con el factor de emisión de Argentina. Es la única vía de medición: no hay ningún
-otro cálculo de consumo ni de emisiones en el código. El informe menciona en §3.3 que
+otro cálculo de consumo ni de emisiones en el código. El informe menciona en secc 3.3 que
 existe la alternativa de deducir la potencia con un modelo propio, pero es una mención:
 este proyecto no la implementa.
 
@@ -212,7 +213,7 @@ Decisiones metodológicas que sostienen los resultados:
   y se divide por K, con K calibrado por una corrida de prueba previa. La ventana mínima
   depende de la fuente de potencia: 3 s si se lee del hardware, 0,5 s si se estima.
 - **Repeticiones.** Cada punto se mide 3 veces y se informan media y dispersión. En la
-  última corrida la dispersión mediana fue del 1,4%.
+  última corrida la dispersión mediana fue del 4,7%.
 - **Factor de emisión al día.** Se lee en cada corrida del último año disponible de la
   serie argentina versionada en `datos/`, en lugar del valor de 2023 que trae CodeCarbon.
 - **Un solo CSV.** Los promedios y desvíos se derivan en memoria, para no versionar dos
@@ -222,6 +223,7 @@ Decisiones metodológicas que sostienen los resultados:
 
 ```
 src/huella_carbono/
+├── __init__.py     nombre y versión del paquete
 ├── config.py       parámetros del modelo energético, cada uno con su fuente
 ├── algoritmos.py   las implementaciones clásicas y la verificación de equivalencia
 ├── ml.py           el experimento de KNN (scikit-learn), en módulo aparte para no
@@ -232,8 +234,13 @@ src/huella_carbono/
 ├── informe.py      genera INFORME.md a partir del CSV
 └── main.py         interfaz de línea de comandos
 
-datos/              entradas versionadas, no generadas: factor de emisión de la red
-                    argentina y factores de equivalencia, cada uno con su procedencia
+datos/              entradas versionadas, no generadas
+├── intensidad_carbono_argentina.json    serie anual de gCO₂eq/kWh de la red
+│                   argentina, con su fuente y fecha de descarga. De acá sale el factor
+│                   de emisión con el que se convierte la energía a CO₂
+└── equivalencias_co2.json    factores para traducir kgCO₂eq a magnitudes tangibles
+                    (km en auto, cargas de teléfono, absorción anual de un árbol)
+
 resultados/         salidas de la última corrida
 ├── simulacion_huella_carbono.csv    el resultado de la simulación (ver más arriba)
 ├── metadatos.json  equipo, versiones y parámetros con que se corrió
