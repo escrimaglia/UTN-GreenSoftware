@@ -222,29 +222,44 @@ Decisiones metodológicas que sostienen los resultados:
 ## Estructura
 
 ```
-src/huella_carbono/
-├── __init__.py     nombre y versión del paquete
-├── config.py       parámetros del modelo energético, cada uno con su fuente
-├── algoritmos.py   las implementaciones clásicas y la verificación de equivalencia
-├── ml.py           el experimento de KNN (scikit-learn), en módulo aparte para no
-│                   pagar el costo de importar sklearn cuando no se usa
-├── medidor.py      la medición con CodeCarbon y el dimensionado del lote
-├── benchmark.py    orquestación y volcado al CSV
-├── graficos.py     los 5 gráficos del informe
-├── informe.py      genera INFORME.md a partir del CSV
-└── main.py         interfaz de línea de comandos
-
-datos/              entradas versionadas, no generadas
-├── intensidad_carbono_argentina.json    serie anual de gCO₂eq/kWh de la red
-│                   argentina, con su fuente y fecha de descarga. De acá sale el factor
-│                   de emisión con el que se convierte la energía a CO₂
-└── equivalencias_co2.json    factores para traducir kgCO₂eq a magnitudes tangibles
-                    (km en auto, cargas de teléfono, absorción anual de un árbol)
-
-resultados/         salidas de la última corrida
-├── simulacion_huella_carbono.csv    el resultado de la simulación (ver más arriba)
-├── metadatos.json  equipo, versiones y parámetros con que se corrió
-└── graficos/       los cinco PNG que embebe el informe
-
-INFORME.md          el informe, generado
+src/huella_carbono/          datos/
+├── __init__.py              ├── intensidad_carbono_argentina.json
+├── config.py                └── equivalencias_co2.json
+├── algoritmos.py
+├── ml.py                    resultados/
+├── medidor.py               ├── simulacion_huella_carbono.csv
+├── benchmark.py             ├── metadatos.json
+├── graficos.py              └── graficos/
+├── informe.py
+└── main.py                  INFORME.md
 ```
+
+**El código**
+
+| Archivo | Qué contiene |
+|---|---|
+| `__init__.py` | nombre y versión del paquete |
+| `config.py` | los parámetros del modelo energético, cada uno con su fuente, y la definición de los cuatro experimentos: tamaños, variantes y descripciones |
+| `algoritmos.py` | las implementaciones de ordenamiento, Fibonacci y matrices, más la verificación de que todas las variantes de un experimento devuelven el mismo resultado |
+| `ml.py` | el experimento de KNN, en módulo aparte para no pagar el costo de importar scikit-learn cuando no se usa |
+| `medidor.py` | la medición con CodeCarbon y el dimensionado del lote de cada punto |
+| `benchmark.py` | la orquestación: recorre experimentos y tamaños, mide, y vuelca el CSV y los metadatos |
+| `graficos.py` | los cinco gráficos que embebe el informe |
+| `informe.py` | genera `INFORME.md` a partir del CSV y los metadatos |
+| `main.py` | la interfaz de línea de comandos |
+
+**Las entradas de datos**, versionadas con el proyecto y no generadas por las corridas:
+
+| Archivo | Qué contiene |
+|---|---|
+| `datos/intensidad_carbono_argentina.json` | la serie anual de gCO₂eq/kWh de la red argentina, con su fuente y fecha de descarga. De acá sale el factor de emisión con el que se convierte la energía en CO₂ |
+| `datos/equivalencias_co2.json` | los factores para traducir kgCO₂eq a magnitudes tangibles: kilómetros en auto, cargas de teléfono y absorción anual de un árbol |
+
+**Las salidas** de la última corrida:
+
+| Archivo | Qué contiene |
+|---|---|
+| `resultados/simulacion_huella_carbono.csv` | el resultado de la simulación, descrito arriba en su propia sección |
+| `resultados/metadatos.json` | con qué equipo, qué versiones y qué parámetros se corrió, y de dónde salió la potencia |
+| `resultados/graficos/` | los cinco PNG que embebe el informe |
+| `INFORME.md` | el informe, generado en cada corrida |
