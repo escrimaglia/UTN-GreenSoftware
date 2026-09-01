@@ -38,13 +38,13 @@ consumida por la intensidad de carbono de la red que la suministra:
 CO₂ [kgCO₂eq]  =  E [kWh]  ×  FE [kgCO₂eq/kWh]  ×  PUE
 ```
 
-donde **FE** es el factor de emisión de la red eléctrica y **PUE** (*Power Usage
+donde FE es el factor de emisión de la red eléctrica y PUE (*Power Usage
 Effectiveness*) contabiliza la infraestructura de soporte, como la refrigeración de
 un datacenter.
 
 ### Factor de emisión de la red argentina
 
-Se adopta **FE = 346,0 gCO₂eq/kWh = 0,346 kgCO₂eq/kWh**, correspondiente a **2025**, el año más reciente disponible para Argentina.
+Se adopta **FE = 346,0 gCO₂eq/kWh = 0,346 kgCO₂eq/kWh**, correspondiente a 2025, el año más reciente disponible para Argentina.
 
 Fuente: Ember (2026), Yearly Electricity Data — con procesamiento de Our World in Data
 (<https://ourworldindata.org/grapher/carbon-intensity-electricity>, descargado el 2026-08-22). El indicador es la
@@ -70,8 +70,8 @@ incluye su propia tabla de factores por país, pero para Argentina está congela
 versión publicada de la herramienta (3.3.0). Ese valor
 es un 2,3% superior al de 2025 y quedaría desactualizado.
 
-Por eso **este informe toma la energía que mide la herramienta y la convierte a CO₂
-con el factor de 2025**, el más reciente disponible. La cifra que la
+Por eso este informe toma la energía que mide la herramienta y la convierte a CO₂
+con el factor de 2025, el más reciente disponible. La cifra que la
 herramienta calcularía con su propia tabla también queda registrada en los datos de la
 corrida, para que la diferencia sea verificable.
 
@@ -94,7 +94,7 @@ nuclear, las emisiones serían una fracción de las calculadas acá.
 
 Se usa **PUE = 1,0** porque el experimento corre en una notebook, sin
 infraestructura de refrigeración externa. En un datacenter el PUE típico está entre
-1,1 y 1,6 —rango de referencia de la industria, no medido en este trabajo—, lo que
+1,1 y 1,6 (rango de referencia de la industria, no medido en este trabajo), lo que
 multiplicaría todos los resultados por ese factor.
 
 ## 3. Metodología
@@ -118,8 +118,8 @@ multiplicaría todos los resultados por ese factor.
 
 ### 3.2 Protocolo de medición
 
-Cada **punto de medición** es una combinación de algoritmo y tamaño de entrada, y
-corresponde a una fila de las tablas de §4. Con cuatro experimentos y sus variantes
+Cada punto de medición es una combinación de algoritmo y tamaño de entrada, y
+corresponde a una fila de las tablas de secc 4. Con cuatro experimentos y sus variantes
 son 42 puntos. Cada uno se mide así:
 
 1. **Se verifica la equivalencia.** Antes de medir se comprueba por aserción que todas
@@ -128,19 +128,19 @@ son 42 puntos. Cada uno se mide así:
 2. **Se calcula el tamaño del lote.** Varios de estos algoritmos terminan en
    millonésimas de segundo, mucho menos de lo que tarda un sensor en dar una lectura
    de consumo, así que no se mide una ejecución aislada: se mide un **lote de K
-   ejecuciones seguidas**, con K elegido para que el lote dure al menos 3,0 s (§3.4).
+   ejecuciones seguidas**, con K elegido para que el lote dure al menos 3,0 s (secc 3.4).
    K se calcula con una corrida de prueba previa, que además funciona como
    calentamiento: la primera ejecución de un algoritmo siempre es más lenta que las
    siguientes.
 3. **Se mide el lote y se divide por K.** Lo que se informa es entonces el costo de
    *una* ejecución, aunque nunca se haya medido una sola por separado. Cuando un
-   algoritmo ya dura más que la ventana por sí solo —el entrenamiento del modelo en
-   los tamaños grandes— K queda en 1.
+   algoritmo ya dura más que la ventana por sí solo, como el entrenamiento del modelo
+   en los tamaños grandes, K queda en 1.
 4. **Se repite 3 veces** y se informan el promedio y la dispersión entre esas
    3 mediciones.
 
 Un ejemplo concreto de esta corrida, para fijar la idea: el algoritmo más rápido del
-banco, `fib_iterativo`, se midió en lotes de **2.734.991 ejecuciones**; con 3 repeticiones,
+banco, `fib_iterativo`, se midió en lotes de 2.734.991 ejecuciones; con 3 repeticiones,
 detrás de esa fila de la tabla hay 8.204.973 ejecuciones reales del algoritmo.
 
 ### 3.3 Otra opción de cálculo: un modelo propio
@@ -156,8 +156,8 @@ energía             =  potencia × tiempo
 huella              =  energía × factor de emisión × PUE
 ```
 
-Requiere tres parámetros del equipo donde se corre: la **potencia en reposo**, la
-**potencia con todos los núcleos ocupados** y el **consumo de la memoria por GB**
+Requiere tres parámetros del equipo donde se corre: la potencia en reposo, la
+potencia con todos los núcleos ocupados y el consumo de la memoria por GB
 usado. Los dos primeros hay que medirlos con un sensor de consumo; suponerlos vuelve
 el resultado tan discutible como la suposición.
 
@@ -167,8 +167,8 @@ sigue proviene de la vía que sí se desarrolla.
 ### 3.4 La vía de este trabajo: CodeCarbon
 
 CodeCarbon es la herramienta de referencia en la industria para medir la huella de
-carbono del software. **Todas las cifras de §4 y §5 salen de acá.** Se la usó con tres
-criterios:
+carbono del software. Todas las cifras de secc 4 y secc 5 salen de acá. Se la usó con
+tres criterios:
 
 - **El país se declara, no se deduce.** La herramienta puede averiguarlo a partir de
   la conexión a internet, pero eso ataría el resultado a la red desde la que se corre
@@ -182,9 +182,9 @@ criterios:
   sesión.
 - **La potencia se mide, y sólo se estima cuando el equipo no permite medirla.** Es la
   decisión de mayor peso sobre los resultados, y por eso tiene su propia sección
-  (§5.2). Hay equipos que exponen un sensor del consumo real del procesador; donde
+  (secc 5.2). Hay equipos que exponen un sensor del consumo real del procesador; donde
   existe y está accesible, la potencia se lee de ahí. Donde no, la herramienta la
-  calcula con una fórmula. **Este software puede correr en otra máquina:** el camino
+  calcula con una fórmula. Este software puede correr en otra máquina: el camino
   se decide en cada corrida según lo que ese equipo permita, y el informe declara cuál
   se usó en lugar de darlo por supuesto.
 
@@ -192,7 +192,7 @@ criterios:
 CO₂ que siguen se apoyan, por lo tanto, en un consumo real y no en una estimación.
 
 Medir el consumo real tiene una exigencia adicional sobre el protocolo: la lectura
-tiene que tomarse mientras el algoritmo está trabajando. Por eso los lotes de §3.2
+tiene que tomarse mientras el algoritmo está trabajando. Por eso los lotes de secc 3.2
 se dimensionan para durar al menos 3,0 s, en lugar de los
 0,5 s que bastarían para cronometrar. Con ventanas más cortas la lectura
 llega cuando el trabajo ya terminó, y el consumo informado queda inflado.
@@ -208,8 +208,8 @@ llega cuando el trabajo ya terminó, y el consumo informado queda inflado.
 
 ### 4.0 Cómo leer las tablas
 
-**Cada fila es un punto de medición** (§3.2) y los valores son el promedio de sus
-3 mediciones, expresados **por ejecución** del algoritmo.
+**Cada fila es un punto de medición** (secc 3.2) y los valores son el promedio de sus
+3 mediciones, expresados por ejecución del algoritmo.
 
 | Columna | Qué es |
 |---|---|
@@ -217,18 +217,18 @@ llega cuando el trabajo ya terminó, y el consumo informado queda inflado.
 | `algoritmo` | la variante medida; todas las del experimento devuelven el mismo resultado |
 | `complejidad` | la complejidad teórica del algoritmo |
 | `tiempo [s]` | cuánto tarda una ejecución |
-| `energía [kWh]` | cuánta electricidad consume una ejecución. Es la magnitud que se mide (§3.4) |
-| `CO₂ [kg]` | esa energía convertida a emisiones con el factor de 0,346 kgCO₂eq/kWh de §2 |
+| `energía [kWh]` | cuánta electricidad consume una ejecución. Es la magnitud que se mide (secc 3.4) |
+| `CO₂ [kg]` | esa energía convertida a emisiones con el factor de 0,346 kgCO₂eq/kWh de secc 2 |
 | `disp.` | cuánto difieren entre sí las repeticiones del punto: el desvío estándar como porcentaje del promedio |
 
 Sobre la dispersión: por debajo del 1% la medición es reproducible. Un valor alto no
 invalida el promedio, y puede venir de dos lados: de las variantes que reparten su
 trabajo entre varios núcleos, donde cuántos se activan cambia de una repetición a
-otra, o del tiempo que consume tomar la lectura de consumo (§5.2), que pesa más en los
+otra, o del tiempo que consume tomar la lectura de consumo (secc 5.2), que pesa más en los
 algoritmos más rápidos.
 
-**Qué dice exactamente una fila.** Tomando la primera del primer experimento —
-`bubble_sort`, cantidad de elementos = 1.000—, cada número significa esto:
+**Qué dice exactamente una fila.** Tomando la primera del primer experimento
+(`bubble_sort`, cantidad de elementos = 1.000), cada número significa esto:
 
 - **`n` = 1.000**: la entrada sobre la que se corrió tenía ese tamaño.
 - **`complejidad` = O(n²)**: etiqueta teórica declarada por el proyecto. No se
@@ -335,7 +335,7 @@ Ambas variantes resuelven el mismo producto con la misma complejidad asintótica
 
 **Pregunta:** A igual resultado predictivo exacto, ¿cuánto cambia la huella según la implementación de la búsqueda de vecinos, y qué pasa cuando una de ellas usa todos los núcleos en lugar de uno?
 
-El modelo es un **clasificador de vecinos más cercanos**, que no deduce ninguna regla: para decidir a qué categoría pertenece un dato nuevo, busca los 31 datos más parecidos entre los que ya conoce y le asigna la categoría que predomina entre esos 31. «Parecido» quiere decir cercano, midiendo la distancia entre las 20 características que describen a cada dato.
+El modelo es un clasificador de vecinos más cercanos, que no deduce ninguna regla: para decidir a qué categoría pertenece un dato nuevo, busca los 31 datos más parecidos entre los que ya conoce y le asigna la categoría que predomina entre esos 31. «Parecido» quiere decir cercano, midiendo la distancia entre las 20 características que describen a cada dato.
 
 Lo costoso es justamente encontrar esos 31 vecinos entre miles de datos, y es ahí donde se diferencian las tres variantes. Se mide el entrenamiento y la clasificación como una sola unidad de trabajo, y las tres devuelven exactamente las mismas predicciones.
 
@@ -369,7 +369,7 @@ Lo costoso es justamente encontrar esos 31 vecinos entre miles de datos, y es ah
 
 - **`knn_brute`** — Mide la distancia del dato nuevo contra todos los datos conocidos, uno por uno, y se queda con los 31 más cercanos. No descarta nada, pero hace esas cuentas de a bloques y reparte el trabajo entre todos los núcleos.
 - **`knn_kd_tree`** — Antes de clasificar, acomoda los datos conocidos dividiendo el espacio con cortes rectos, como una grilla irregular. Al buscar los vecinos descarta de golpe las zonas que quedaron lejos, en lugar de recorrer dato por dato.
-- **`knn_ball_tree`** — Hace lo mismo que `knn_kd_tree` —descartar zonas enteras en vez de recorrer todo—, pero agrupando los datos conocidos en burbujas en lugar de cortarlos con líneas rectas. Usa un solo núcleo.
+- **`knn_ball_tree`** — Hace lo mismo que `knn_kd_tree` (descartar zonas enteras en vez de recorrer todo), pero agrupando los datos conocidos en burbujas en lugar de cortarlos con líneas rectas. Usa un solo núcleo.
 
 ![Entrenamiento e inferencia de un modelo de ML (KNN)](resultados/graficos/04_knn_escalado.png)
 
@@ -379,13 +379,13 @@ Lo costoso es justamente encontrar esos 31 vecinos entre miles de datos, y es ah
 
 Sobre las 42 configuraciones medidas, las emisiones resultan casi
 exactamente proporcionales al tiempo de ejecución: al relacionar ambas magnitudes, un
-algoritmo que tarda el doble emite **2,00 veces más**, y la relación explica el
-**99,99%** de la variación observada.
+algoritmo que tarda el doble emite 2,00 veces más, y la relación
+explica el 99,99% de la variación observada.
 
 Conviene entender por qué, porque no es una ley general. Casi todas las cargas de
 este banco de pruebas usan el procesador de la misma forma: un solo núcleo,
 calculando sin pausas. A igual intensidad de uso, el consumo por segundo es
-parecido, y entonces la energía —que es consumo por tiempo— queda gobernada por el
+parecido, y entonces la energía, que es consumo por tiempo, queda gobernada por el
 tiempo. **La proporcionalidad es real, pero vale entre cargas que usan la máquina de
 forma comparable.**
 
@@ -404,7 +404,7 @@ potencia por tiempo. El tiempo se cronometra sin dificultad. La potencia es la p
 difícil, y de ella depende todo lo demás, así que corresponde declarar de dónde salió.
 
 **En esta corrida la potencia se midió** con el sensor de consumo del propio equipo
-(§3.4). Los valores absolutos de CO₂ se apoyan entonces en un consumo real. Quedan
+(secc 3.4). Los valores absolutos de CO₂ se apoyan entonces en un consumo real. Quedan
 dos salvedades, que no son del cálculo sino del alcance de la medición:
 
 1. **El sensor mide el procesador completo, no el algoritmo.** Si otro programa
@@ -423,8 +423,8 @@ dos salvedades, que no son del cálculo sino del alcance de la medición:
 accesible, la herramienta deduce la potencia del consumo nominal del procesador y de
 cuán ocupada está la máquina. Conviene saber a qué se renunció al no usar ese
 camino: en este equipo la herramienta no reconoce el procesador, así que le habría
-asignado un consumo nominal genérico de 85 W —el de una computadora de
-escritorio, no el de una notebook— y de ahí habría derivado toda la energía.
+asignado un consumo nominal genérico de 85 W (el de una computadora de
+escritorio, no el de una notebook) y de ahí habría derivado toda la energía.
 
 **Qué se puede afirmar y qué no.**
 
@@ -440,15 +440,15 @@ escritorio, no el de una notebook— y de ahí habría derivado toda la energía
 ### 5.3 Magnitud de los resultados
 
 Las emisiones de una ejecución individual son diminutas. La suma de todas las
-configuraciones medidas en este benchmark asciende a **2,184e-06 kgCO₂eq**.
+configuraciones medidas en este benchmark asciende a 2,184e-06 kgCO₂eq.
 Presentar solo ese número invitaría a concluir que el problema es irrelevante, y
 sería una lectura equivocada: el software se ejecuta a escala.
 
 - El peor algoritmo medido (`bubble_sort`, cantidad de elementos = 8.000) repetido
-  1.000.000 veces —un millón de ejecuciones (una función invocada por un servicio web de tamaño medio a lo largo de unos meses)— emite **0,724 kgCO₂eq**,
+  1.000.000 veces (un millón de ejecuciones (una función invocada por un servicio web de tamaño medio a lo largo de unos meses)) emite 0,724 kgCO₂eq,
   equivalente a 5 km recorridos en auto, 209 cargas completas de un smartphone.
 - El peor algoritmo medido (`bubble_sort`, cantidad de elementos = 8.000) repetido
-  1.000.000.000 veces —mil millones de ejecuciones (escala de un servicio masivo)— emite **724,297 kgCO₂eq**,
+  1.000.000.000 veces (mil millones de ejecuciones (escala de un servicio masivo)) emite 724,297 kgCO₂eq,
   equivalente a 4.656 km recorridos en auto, 209.334 cargas completas de un smartphone.
 
 Equivalencias utilizadas:
@@ -458,15 +458,72 @@ Equivalencias utilizadas:
 | km recorridos en auto | 0,15557 kgCO₂eq c/u | 7,9 L/100 km (consumo medio de vehículos livianos en Argentina) × 1,9693 kgCO₂/L (Nafta Grado 2 (Súper) con bioetanol 12%, CO₂ fósil) |
 | cargas completas de un smartphone | 0,00346 kgCO₂eq c/u | Batería de ~10 Wh cargada desde la red: 0,010 kWh × 0,346 kgCO₂eq/kWh (FE 2025) |
 
-## 6. Limitaciones
+## 6. Compensación
+
+Una forma de dimensionar las emisiones es preguntarse cuánta naturaleza haría falta
+para absorberlas. Se adoptan como referencia las siguientes absorciones anuales, que
+este trabajo no midió: son valores de referencia declarados como supuestos.
+
+| Árbol | Absorción anual |
+|---|---|
+| Árbol adulto | 300 kgCO₂eq por año |
+| Árbol recién plantado | 30 kgCO₂eq por año |
+
+### 6.1 Árboles para compensar lo medido
+
+El benchmark completo emitió 2,184e-06 kgCO₂eq (secc 5.3). Compensarlo
+requiere 7,280e-09 árboles adultos: en la práctica, ninguno. Un solo
+árbol adulto absorbe en un año lo que emite este benchmark repetido
+137.368.327 veces.
+
+La cifra recién significa algo a escala de uso real. Con el peor algoritmo medido
+(`bubble_sort`, cantidad de elementos = 8.000):
+
+| Escala de uso | CO₂ | Árboles adultos | Árboles recién plantados |
+|---|---|---|---|
+| 1.000.000 ejecuciones | 0,724 kgCO₂eq | 2,4e-03 | 0,024 |
+| 1.000.000.000 ejecuciones | 724,297 kgCO₂eq | 2,41 | 24,14 |
+
+Y al revés: cuántas ejecuciones alcanza a compensar un solo árbol en un año, según
+qué algoritmo se elija para hacer el mismo trabajo.
+
+| Árbol | `bubble_sort` | `timsort_nativo` |
+|---|---|---|
+| Árbol adulto | 414.194.802 | 1.247.434.190.610 |
+| Árbol recién plantado | 41.419.480 | 124.743.419.061 |
+
+Resolver el mismo problema con `timsort_nativo` en lugar de `bubble_sort`
+hace que el mismo árbol alcance para 3.012 veces más ejecuciones.
+
+### 6.2 Horas de procesamiento que compensa un árbol
+
+Mientras el equipo calcula, la tasa de emisión es prácticamente la misma para los
+11 algoritmos medidos: lo que cambia entre ellos es cuánto tiempo la
+sostienen, no la intensidad. La mediana de esta corrida es
+1,109 gramos de CO₂ por hora de procesamiento.
+
+| Árbol | Horas que compensa | Equivale a | De cómputo continuo |
+|---|---|---|---|
+| Árbol adulto | 270.544 h | 11.273 días | 30,9 años |
+| Árbol recién plantado | 27.054 h | 1.127 días | 3,1 años |
+
+Es decir que un árbol recién plantado absorbe en un año lo que este equipo emite
+calculando sin parar durante 3,1 años. Puesto al revés: una notebook
+trabajando a pleno los 365 días necesita 0,32 árboles recién
+plantados para quedar neutra.
+
+Estas cifras son de este equipo y esta red eléctrica (secc 3.1 y secc 2). Un servidor de
+centro de datos emite por hora uno o dos órdenes de magnitud más.
+
+## 7. Limitaciones
 
 Se declaran explícitamente porque condicionan cómo hay que leer los resultados:
 
 1. **El consumo medido es del procesador completo**, no exclusivamente del algoritmo
-   (§5.2). Se midió con el equipo descargado, pero el ruido de fondo del sistema
+   (secc 5.2). Se midió con el equipo descargado, pero el ruido de fondo del sistema
    operativo no se elimina del todo.
 2. **Parte de la ventana de medición ocurre con el algoritmo ya terminado**, porque
-   tomar la lectura lleva su propio tiempo (§5.2). Eso suma algo de consumo ajeno,
+   tomar la lectura lleva su propio tiempo (secc 5.2). Eso suma algo de consumo ajeno,
    y pesa más en los algoritmos más rápidos.
 3. **Solo se cuenta la energía de uso.** Queda afuera la huella de fabricar el equipo,
    transportarlo y descartarlo. En un análisis de ciclo de vida completo, fabricar
@@ -478,19 +535,19 @@ Se declaran explícitamente porque condicionan cómo hay que leer los resultados
    otra red eléctrica dan otras cifras absolutas. Las diferencias *entre* algoritmos,
    que son la conclusión del trabajo, sí son trasladables.
 
-## 7. Conclusiones
+## 8. Conclusiones
 
-1. En **Algoritmos de ordenamiento** (n=8000), `timsort_nativo` emite **3.012×** menos CO₂ que `bubble_sort` para un resultado idéntico.
-2. En **Cálculo de Fibonacci** (n=32), `fib_iterativo` emite **319.674×** menos CO₂ que `fib_recursivo` para un resultado idéntico.
-3. En **Multiplicación de matrices** (n=300), `matmul_numpy` emite **174×** menos CO₂ que `matmul_python` para un resultado idéntico.
-4. En **Entrenamiento e inferencia de un modelo de ML (KNN)** (n=20000), `knn_brute` emite **16,4×** menos CO₂ que `knn_ball_tree` para un resultado idéntico.
+1. En Algoritmos de ordenamiento (n=8000), `timsort_nativo` emite **3.012×** menos CO₂ que `bubble_sort` para un resultado idéntico.
+2. En Cálculo de Fibonacci (n=32), `fib_iterativo` emite **319.674×** menos CO₂ que `fib_recursivo` para un resultado idéntico.
+3. En Multiplicación de matrices (n=300), `matmul_numpy` emite **174×** menos CO₂ que `matmul_python` para un resultado idéntico.
+4. En Entrenamiento e inferencia de un modelo de ML (KNN) (n=20000), `knn_brute` emite **16,4×** menos CO₂ que `knn_ball_tree` para un resultado idéntico.
 
 **La hipótesis se verifica.** Las diferencias de huella entre algoritmos
 equivalentes no son marginales: alcanzan varios órdenes de magnitud. **Elegir un
 algoritmo adecuado no es solo una decisión de rendimiento, es también una decisión
 ambiental**.
 
-## 8. Reproducción
+## 9. Reproducción
 
 ```bash
 uv sync                            # instala el entorno exacto desde uv.lock
@@ -511,9 +568,9 @@ Entradas de datos versionadas con el proyecto (no se generan, se leen):
 | Archivo | Contenido |
 |---|---|
 | `datos/intensidad_carbono_argentina.json` | serie de intensidad de carbono de la red argentina y factor oficial de contraste, con su procedencia |
-| `datos/equivalencias_co2.json` | factores para traducir kgCO₂eq a magnitudes tangibles (§5.3), con su fuente |
+| `datos/equivalencias_co2.json` | factores para traducir kgCO₂eq a magnitudes tangibles (secc 5.3), con su fuente |
 
-## 9. Fuentes y referencias
+## 10. Fuentes y referencias
 
 **Datos de emisiones de la red eléctrica**
 
@@ -523,17 +580,17 @@ Entradas de datos versionadas con el proyecto (no se generan, se leen):
 
 **Herramientas de medición**
 
-4. CodeCarbon 3.3.0 — herramienta de medición usada en este trabajo (§3.4). <https://github.com/mlco2/codecarbon> · <https://mlco2.github.io/codecarbon/>. Su tabla interna de factores de emisión por país da para Argentina 354,1 gCO₂eq/kWh, valor de 2023, que este trabajo no adopta por el motivo explicado en §2.
+4. CodeCarbon 3.3.0 — herramienta de medición usada en este trabajo (secc 3.4). <https://github.com/mlco2/codecarbon> · <https://mlco2.github.io/codecarbon/>. Su tabla interna de factores de emisión por país da para Argentina 354,1 gCO₂eq/kWh, valor de 2023, que este trabajo no adopta por el motivo explicado en secc 2.
 5. scikit-learn 1.9.0 — provee el clasificador de vecinos más cercanos y el generador del conjunto de datos sintético del cuarto experimento. <https://scikit-learn.org/stable/>.
-6. Utilidad de consumo del sistema operativo (macOS) — es el sensor del que se lee la potencia real del procesador en este equipo (§3.4).
+6. Utilidad de consumo del sistema operativo (macOS) — es el sensor del que se lee la potencia real del procesador en este equipo (secc 3.4).
 
 **Equivalencias de referencia**
 
 7. GFEI / ONU Medio Ambiente, estudio de línea de base de eficiencia de vehículos livianos en Argentina (2018), sobre los vehículos registrados entre 2006 y 2017: 7,9 L/100 km. <https://www.globalfueleconomy.org/news/event-showcases-argentina-s-new-comparative-vehicle-efficiency-label-and-electric-shift> (consultado el 2026-08-22).
-8. Sistema Nacional de Inventario de GEI de Argentina (SNIGEIAR), Factores de Emisión para huella de carbono 2025, Subsecretaría de Ambiente de la Nación, Tabla 2 «Combustibles - Transporte»: 1,9693 kgCO₂/L para Nafta Grado 2 (Súper) con bioetanol 12%, CO₂ fósil. <https://inventariogei.ambiente.gob.ar/files/Factores_de_Emision_SNIGEIAR_para_HC_2025.pdf> (consultado el 2026-08-22). Combinado con el consumo anterior da la equivalencia «km recorridos en auto» de §5.3: **155,6 gCO₂/km**. El factor por km se calcula como consumo × factor del combustible, con datos argentinos en ambos términos. Se cuenta solo el CO₂ fósil: la nafta argentina lleva 12% de bioetanol por norma y su CO₂ biogénico (0,1795 kgCO₂/L, es decir 14,2 gCO₂/km) se informa aparte según la práctica del inventario nacional.
-9. Equivalencias eléctricas de §5.3: se definen por su consumo en kWh («cargas completas de un smartphone» = 0,010 kWh) y se convierten con el factor de emisión de este informe, de modo que no pueden quedar desfasadas del FE en uso. Definidas en `datos/equivalencias_co2.json`.
+8. Sistema Nacional de Inventario de GEI de Argentina (SNIGEIAR), Factores de Emisión para huella de carbono 2025, Subsecretaría de Ambiente de la Nación, Tabla 2 «Combustibles - Transporte»: 1,9693 kgCO₂/L para Nafta Grado 2 (Súper) con bioetanol 12%, CO₂ fósil. <https://inventariogei.ambiente.gob.ar/files/Factores_de_Emision_SNIGEIAR_para_HC_2025.pdf> (consultado el 2026-08-22). Combinado con el consumo anterior da la equivalencia «km recorridos en auto» de secc 5.3: 155,6 gCO₂/km. El factor por km se calcula como consumo × factor del combustible, con datos argentinos en ambos términos. Se cuenta solo el CO₂ fósil: la nafta argentina lleva 12% de bioetanol por norma y su CO₂ biogénico (0,1795 kgCO₂/L, es decir 14,2 gCO₂/km) se informa aparte según la práctica del inventario nacional.
+9. Equivalencias eléctricas de secc 5.3: se definen por su consumo en kWh («cargas completas de un smartphone» = 0,010 kWh) y se convierten con el factor de emisión de este informe, de modo que no pueden quedar desfasadas del FE en uso. Definidas en `datos/equivalencias_co2.json`.
 
 **Metodología**
 
 10. UNFCCC. *Tool to calculate the emission factor for an electricity system*, versión 7 — metodología del factor oficial argentino citado arriba. <https://cdm.unfccc.int/methodologies/PAmethodologies/tools/am-tool-07-v7.0.pdf>.
-11. The Green Software Foundation. *Software Carbon Intensity (SCI) Specification* — marco de referencia para la fórmula CO₂ = E × FE × PUE usada en §2. <https://sci.greensoftware.foundation/>.
+11. The Green Software Foundation. *Software Carbon Intensity (SCI) Specification* — marco de referencia para la fórmula CO₂ = E × FE × PUE usada en secc 2. <https://sci.greensoftware.foundation/>.

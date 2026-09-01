@@ -21,5 +21,17 @@
       "descargado": "2026-08-22",
       "nota": "El factor por km se calcula como consumo × factor del combustible, con datos argentinos en ambos términos. Se cuenta solo el CO₂ fósil: la nafta argentina lleva 12% de bioetanol por norma y su CO₂ biogénico (0,1795 kgCO₂/L, es decir 14,2 gCO₂/km) se informa aparte según la práctica del inventario nacional."
     }
+  ],
+  "arboles": [
+    {
+      "nombre": "adulto",
+      "kg_co2_por_anio": 300,
+      "detalle": "absorción anual de un árbol adulto, valor de referencia adoptado por el trabajo"
+    },
+    {
+      "nombre": "recién plantado",
+      "kg_co2_por_anio": 30,
+      "detalle": "absorción anual de un árbol recién plantado, valor de referencia adoptado por el trabajo"
+    }
   ]
 }

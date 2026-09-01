@@ -158,7 +158,7 @@ PUE = 1.0
 # --------------------------------------------------------------------------------------
 
 
-# El modelo de potencia propio se describe en el informe (§3.3) como una opción de
+# El modelo de potencia propio se describe en el informe (secc 3.3) como una opción de
 # cálculo, pero el proyecto no lo implementa: la medición es de CodeCarbon.
 
 
@@ -216,7 +216,7 @@ class Experimento:
     # Qué hace cada variante, en lenguaje llano y en tres líneas como máximo: el informe lo
     # inserta antes del gráfico de cada experimento, para que se entienda qué se comparó.
     descripciones: dict[str, str] = field(default_factory=dict)
-    # Escalas con las que §5.3 extrapola las emisiones de este experimento. El default
+    # Escalas con las que secc 5.3 extrapola las emisiones de este experimento. El default
     # (un millón y mil millones de ejecuciones) tiene sentido para una función invocada por
     # un servicio; para un entrenamiento de modelo no, y cada experimento puede declarar las
     # suyas: lista de (multiplicador, descripción).
@@ -336,7 +336,7 @@ EXPERIMENTOS: dict[str, Experimento] = {
         tamanios_rapido=[2000, 4000],
         unidad_n="muestras del dataset",
         notas=(
-            "El modelo es un **clasificador de vecinos más cercanos**, que no deduce ninguna "
+            "El modelo es un clasificador de vecinos más cercanos, que no deduce ninguna "
             "regla: para decidir a qué categoría pertenece un dato nuevo, busca los 31 datos "
             "más parecidos entre los que ya conoce y le asigna la categoría que predomina "
             "entre esos 31. «Parecido» quiere decir cercano, midiendo la distancia entre las "
@@ -363,8 +363,8 @@ EXPERIMENTOS: dict[str, Experimento] = {
                 "golpe las zonas que quedaron lejos, en lugar de recorrer dato por dato."
             ),
             "knn_ball_tree": (
-                "Hace lo mismo que `knn_kd_tree` —descartar zonas enteras en vez de recorrer "
-                "todo—, pero agrupando los datos conocidos en burbujas en lugar de cortarlos "
+                "Hace lo mismo que `knn_kd_tree` (descartar zonas enteras en vez de recorrer "
+                "todo), pero agrupando los datos conocidos en burbujas en lugar de cortarlos "
                 "con líneas rectas. Usa un solo núcleo."
             ),
         },
@@ -438,3 +438,10 @@ def cargar_equivalencias() -> tuple[list[tuple[str, float, str]], dict[str, Any]
 
 
 EQUIVALENCIAS, EQUIVALENCIAS_CRUDO = cargar_equivalencias()
+
+# Absorción anual de CO2 de un árbol, para el cálculo de compensación del informe. Son los
+# valores de referencia que adopta el trabajo, declarados como tales: no se midieron acá.
+ARBOLES: list[tuple[str, float, str]] = [
+    (item["nombre"], float(item["kg_co2_por_anio"]), item.get("detalle", ""))
+    for item in EQUIVALENCIAS_CRUDO.get("arboles", [])
+]
