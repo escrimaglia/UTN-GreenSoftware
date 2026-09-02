@@ -175,13 +175,19 @@ def tiempo_vs_co2(resumen: pd.DataFrame, nombre_archivo: str = "05_tiempo_vs_co2
             "--",
             color="#555555",
             linewidth=1.2,
-            label=f"ajuste log-log: pendiente {coef[0]:.3f}, R² = {r2:.4f}",
+            label=(
+                "tendencia: al doble de tiempo, "
+                # coma decimal, como en el resto del proyecto
+                f"{2 ** coef[0]:.2f}".replace(".", ",") + " veces más CO₂"
+            ),
         )
         texto = (
-            f"Pendiente {coef[0]:.3f} con R² = {r2:.4f}: casi proporcionalidad.\n"
-            "Es en buena parte una propiedad del modelo de CodeCarbon, que estima\n"
-            "la potencia con la carga global de la máquina y no con la del proceso:\n"
-            "su CO₂ resulta la duración multiplicada por una constante (§5.1)."
+            "Cada punto es un algoritmo resolviendo un problema de un tamaño dado,\n"
+            "por ejemplo ordenar una lista de 8.000 elementos.\n"
+            "Más a la derecha, más tarda. Más arriba, más CO₂ emite.\n"
+            "Los ejes multiplican por diez en cada marca, no suman.\n"
+            "Que los puntos formen una recta significa que el que tarda el doble\n"
+            "emite alrededor del doble."
         )
         ax.text(
             0.03,

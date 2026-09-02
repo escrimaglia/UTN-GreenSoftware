@@ -2,7 +2,7 @@
 
 **Green Software — Universidad Tecnológica Nacional - FRC**
 
-Fecha de la corrida: 2026-08-23 20:52:55
+Fecha de la corrida: 2026-09-01 19:35:49
 
 > Todas las cifras de este informe salen de las mediciones registradas en la corrida
 > indicada arriba. Ninguna fue escrita a mano ni tomada de otra fuente.
@@ -103,7 +103,7 @@ multiplicaría todos los resultados por ese factor.
 
 | Parámetro | Valor |
 |---|---|
-| Plataforma | macOS-26.5.2-arm64-arm-64bit |
+| Plataforma | macOS-26.6.2-arm64-arm-64bit |
 | Procesador | Apple M2 Pro |
 | Núcleos | 12 lógicos / 12 físicos |
 | RAM | 16,0 GB |
@@ -140,8 +140,8 @@ son 42 puntos. Cada uno se mide así:
    3 mediciones.
 
 Un ejemplo concreto de esta corrida, para fijar la idea: el algoritmo más rápido del
-banco, `fib_iterativo`, se midió en lotes de 2.734.991 ejecuciones; con 3 repeticiones,
-detrás de esa fila de la tabla hay 8.204.973 ejecuciones reales del algoritmo.
+banco, `fib_iterativo`, se midió en lotes de 5.623.564 ejecuciones; con 3 repeticiones,
+detrás de esa fila de la tabla hay 16.870.692 ejecuciones reales del algoritmo.
 
 ### 3.3 Otra opción de cálculo: un modelo propio
 
@@ -176,7 +176,7 @@ tres criterios:
   repetible.
 - **Una sola sesión de medición para todo el benchmark.** Poner en marcha la
   herramienta lleva un tiempo, porque antes reconoce el equipo:
-  2,9 s en esta corrida. Si se la arrancara y detuviera en cada medición, ese
+  2,8 s en esta corrida. Si se la arrancara y detuviera en cada medición, ese
   tiempo caería dentro de lo medido y arruinaría cualquier medición de milésimas de
   segundo. Se abre una sola vez y cada algoritmo se mide como una tarea dentro de esa
   sesión.
@@ -196,13 +196,6 @@ tiene que tomarse mientras el algoritmo está trabajando. Por eso los lotes de s
 se dimensionan para durar al menos 3,0 s, en lugar de los
 0,5 s que bastarían para cronometrar. Con ventanas más cortas la lectura
 llega cuando el trabajo ya terminó, y el consumo informado queda inflado.
-
-| Qué reconoció la herramienta | Valor |
-|---|---|
-| Procesador reconocido | Apple M2 Pro |
-| Potencia del procesador | medida con el sensor del equipo durante la corrida |
-| Potencia de la memoria | 3,00 W, valor de referencia de la herramienta |
-| Red eléctrica | Argentina |
 
 ## 4. Resultados
 
@@ -233,17 +226,17 @@ algoritmos más rápidos.
 - **`n` = 1.000**: la entrada sobre la que se corrió tenía ese tamaño.
 - **`complejidad` = O(n²)**: etiqueta teórica declarada por el proyecto. No se
   midió ni se derivó de los datos.
-- **`tiempo [s]` = 2,887e-02**: se ejecutó el algoritmo
-  104 veces seguidas y se cronometró el conjunto; el total se dividió por
-  104. Eso se hizo 3 veces y se promediaron los 3 cocientes.
-- **`energía [kWh]` = 2,726e-08**: durante esas mismas
-  104 ejecuciones se integró la potencia leída del procesador más la
-  atribuida a la memoria, sobre toda la ventana. El total se dividió por 104 y se
+- **`tiempo [s]` = 2,866e-02**: se ejecutó el algoritmo
+  105 veces seguidas y se cronometró el conjunto; el total se dividió por
+  105. Eso se hizo 3 veces y se promediaron los 3 cocientes.
+- **`energía [kWh]` = 2,671e-08**: durante esas mismas
+  105 ejecuciones se integró la potencia leída del procesador más la
+  atribuida a la memoria, sobre toda la ventana. El total se dividió por 105 y se
   promediaron las 3 mediciones.
-- **`CO₂ [kg]` = 9,432e-09**: la energía anterior multiplicada por
+- **`CO₂ [kg]` = 9,243e-09**: la energía anterior multiplicada por
   0,346. No es una medición independiente: es la misma cifra en otra unidad.
-- **`disp.` = ±10,8%**: el desvío estándar de los 3 valores de CO₂ medidos
-  (9,017e-09, 1,059e-08, 8,689e-09), dividido por su promedio.
+- **`disp.` = ±15,2%**: el desvío estándar de los 3 valores de CO₂ medidos
+  (1,087e-08, 8,450e-09, 8,411e-09), dividido por su promedio.
 
 ### Algoritmos de ordenamiento
 
@@ -253,22 +246,22 @@ Las tres variantes ordenan exactamente la misma lista de enteros generada con se
 
 | n | algoritmo | complejidad | tiempo [s] | energía [kWh] | CO₂ [kg] | disp. |
 |---|---|---|---|---|---|---|
-| 1000 | `bubble_sort` | O(n²) | 2,887e-02 | 2,726e-08 | 9,432e-09 | ±10,8% |
-| 1000 | `merge_sort` | O(n log n) | 1,203e-03 | 1,150e-09 | 3,978e-10 | ±13,1% |
-| 1000 | `timsort_nativo` | O(n log n) en C | 4,638e-05 | 4,204e-11 | 1,455e-11 | ±5,7% |
-| 2000 | `bubble_sort` | O(n²) | 1,222e-01 | 1,094e-07 | 3,786e-08 | ±1,9% |
-| 2000 | `merge_sort` | O(n log n) | 2,545e-03 | 2,214e-09 | 7,660e-10 | ±1,8% |
-| 2000 | `timsort_nativo` | O(n log n) en C | 1,355e-04 | 1,211e-10 | 4,189e-11 | ±2,0% |
-| 4000 | `bubble_sort` | O(n²) | 5,259e-01 | 4,836e-07 | 1,673e-07 | ±10,6% |
-| 4000 | `merge_sort` | O(n log n) | 5,703e-03 | 5,234e-09 | 1,811e-09 | ±1,9% |
-| 4000 | `timsort_nativo` | O(n log n) en C | 3,517e-04 | 3,499e-10 | 1,211e-10 | ±4,7% |
-| 8000 | `bubble_sort` | O(n²) | 2,127e+00 | 2,093e-06 | 7,243e-07 | ±6,8% |
-| 8000 | `merge_sort` | O(n log n) | 1,184e-02 | 1,155e-08 | 3,998e-09 | ±7,7% |
-| 8000 | `timsort_nativo` | O(n log n) en C | 8,039e-04 | 6,951e-10 | 2,405e-10 | ±0,8% |
+| 1000 | `bubble_sort` | O(n²) | 2,866e-02 | 2,671e-08 | 9,243e-09 | ±15,2% |
+| 1000 | `merge_sort` | O(n log n) | 1,178e-03 | 1,011e-09 | 3,498e-10 | ±1,0% |
+| 1000 | `timsort_nativo` | O(n log n) en C | 4,507e-05 | 3,848e-11 | 1,331e-11 | ±1,1% |
+| 2000 | `bubble_sort` | O(n²) | 1,218e-01 | 1,041e-07 | 3,603e-08 | ±0,5% |
+| 2000 | `merge_sort` | O(n log n) | 2,557e-03 | 2,211e-09 | 7,650e-10 | ±1,6% |
+| 2000 | `timsort_nativo` | O(n log n) en C | 1,329e-04 | 1,139e-10 | 3,942e-11 | ±3,9% |
+| 4000 | `bubble_sort` | O(n²) | 5,222e-01 | 4,488e-07 | 1,553e-07 | ±2,7% |
+| 4000 | `merge_sort` | O(n log n) | 5,512e-03 | 4,752e-09 | 1,644e-09 | ±2,0% |
+| 4000 | `timsort_nativo` | O(n log n) en C | 3,432e-04 | 2,928e-10 | 1,013e-10 | ±1,4% |
+| 8000 | `bubble_sort` | O(n²) | 2,107e+00 | 1,795e-06 | 6,209e-07 | ±0,3% |
+| 8000 | `merge_sort` | O(n log n) | 1,186e-02 | 1,025e-08 | 3,545e-09 | ±2,2% |
+| 8000 | `timsort_nativo` | O(n log n) en C | 7,995e-04 | 6,883e-10 | 2,382e-10 | ±2,4% |
 
-**Resultado para n = 8.000:** `timsort_nativo` (O(n log n) en C) emite **3.012 veces menos** CO₂ que `bubble_sort` (O(n²)), produciendo exactamente el mismo resultado.
+**Resultado para n = 8.000:** `timsort_nativo` (O(n log n) en C) emite **2.607 veces menos** CO₂ que `bubble_sort` (O(n²)), produciendo exactamente el mismo resultado.
 
-**Qué hace cada variante.**
+**Qué significa cada algoritmo.**
 
 - **`bubble_sort`** — Compara elementos vecinos y los intercambia si están desordenados, y repite el recorrido hasta que no queda ningún intercambio por hacer. Es el método más simple de escribir y el que más trabajo hace.
 - **`merge_sort`** — Parte la lista en mitades hasta quedarse con elementos sueltos y después las va uniendo de a pares, ya ordenadas. Escrito en Python.
@@ -284,22 +277,22 @@ Se acota en n=32 porque la variante recursiva ingenua crece de forma exponencial
 
 | n | algoritmo | complejidad | tiempo [s] | energía [kWh] | CO₂ [kg] | disp. |
 |---|---|---|---|---|---|---|
-| 20 | `fib_iterativo` | O(n) | 4,651e-07 | 4,196e-13 | 1,452e-13 | ±5,7% |
-| 20 | `fib_memoizado` | O(n) | 5,003e-06 | 4,664e-12 | 1,614e-12 | ±3,2% |
-| 20 | `fib_recursivo` | O(φⁿ) | 7,538e-04 | 6,644e-10 | 2,299e-10 | ±2,5% |
-| 25 | `fib_iterativo` | O(n) | 5,731e-07 | 5,298e-13 | 1,833e-13 | ±11,7% |
-| 25 | `fib_memoizado` | O(n) | 5,462e-06 | 4,620e-12 | 1,598e-12 | ±1,1% |
-| 25 | `fib_recursivo` | O(φⁿ) | 8,291e-03 | 7,680e-09 | 2,657e-09 | ±10,0% |
-| 30 | `fib_iterativo` | O(n) | 6,881e-07 | 6,610e-13 | 2,287e-13 | ±9,6% |
-| 30 | `fib_memoizado` | O(n) | 6,421e-06 | 5,583e-12 | 1,932e-12 | ±3,3% |
-| 30 | `fib_recursivo` | O(φⁿ) | 9,251e-02 | 8,163e-08 | 2,825e-08 | ±1,2% |
-| 32 | `fib_iterativo` | O(n) | 7,302e-07 | 6,617e-13 | 2,289e-13 | ±3,6% |
-| 32 | `fib_memoizado` | O(n) | 6,731e-06 | 5,888e-12 | 2,037e-12 | ±1,9% |
-| 32 | `fib_recursivo` | O(φⁿ) | 2,417e-01 | 2,115e-07 | 7,319e-08 | ±0,5% |
+| 20 | `fib_iterativo` | O(n) | 4,493e-07 | 4,010e-13 | 1,387e-13 | ±2,1% |
+| 20 | `fib_memoizado` | O(n) | 5,271e-06 | 4,934e-12 | 1,707e-12 | ±10,8% |
+| 20 | `fib_recursivo` | O(φⁿ) | 7,353e-04 | 6,286e-10 | 2,175e-10 | ±0,1% |
+| 25 | `fib_iterativo` | O(n) | 5,642e-07 | 4,906e-13 | 1,697e-13 | ±1,9% |
+| 25 | `fib_memoizado` | O(n) | 5,474e-06 | 4,667e-12 | 1,615e-12 | ±0,3% |
+| 25 | `fib_recursivo` | O(φⁿ) | 8,154e-03 | 7,057e-09 | 2,442e-09 | ±3,0% |
+| 30 | `fib_iterativo` | O(n) | 6,769e-07 | 5,827e-13 | 2,016e-13 | ±1,3% |
+| 30 | `fib_memoizado` | O(n) | 6,466e-06 | 5,505e-12 | 1,905e-12 | ±0,6% |
+| 30 | `fib_recursivo` | O(φⁿ) | 9,036e-02 | 7,711e-08 | 2,668e-08 | ±0,5% |
+| 32 | `fib_iterativo` | O(n) | 7,186e-07 | 6,150e-13 | 2,128e-13 | ±1,7% |
+| 32 | `fib_memoizado` | O(n) | 6,774e-06 | 6,213e-12 | 2,150e-12 | ±8,2% |
+| 32 | `fib_recursivo` | O(φⁿ) | 2,361e-01 | 2,020e-07 | 6,989e-08 | ±0,6% |
 
-**Resultado para n = 32:** `fib_iterativo` (O(n)) emite **319.674 veces menos** CO₂ que `fib_recursivo` (O(φⁿ)), produciendo exactamente el mismo resultado.
+**Resultado para n = 32:** `fib_iterativo` (O(n)) emite **328.443 veces menos** CO₂ que `fib_recursivo` (O(φⁿ)), produciendo exactamente el mismo resultado.
 
-**Qué hace cada variante.**
+**Qué significa cada algoritmo.**
 
 - **`fib_recursivo`** — Para obtener un término suma los dos anteriores, y para cada uno de ellos vuelve a empezar de cero, sin recordar nada. Termina recalculando los mismos valores una cantidad enorme de veces.
 - **`fib_memoizado`** — Hace lo mismo, pero anota cada resultado la primera vez que lo calcula y después lo reutiliza en lugar de volver a calcularlo.
@@ -315,16 +308,16 @@ Ambas variantes resuelven el mismo producto con la misma complejidad asintótica
 
 | n | algoritmo | complejidad | tiempo [s] | energía [kWh] | CO₂ [kg] | disp. |
 |---|---|---|---|---|---|---|
-| 100 | `matmul_numpy` | O(n³) vectorizado | 6,713e-04 | 6,619e-10 | 2,290e-10 | ±3,5% |
-| 100 | `matmul_python` | O(n³) en Python | 3,694e-02 | 3,558e-08 | 1,231e-08 | ±4,6% |
-| 200 | `matmul_numpy` | O(n³) vectorizado | 2,582e-03 | 2,434e-09 | 8,421e-10 | ±10,3% |
-| 200 | `matmul_python` | O(n³) en Python | 2,859e-01 | 2,877e-07 | 9,955e-08 | ±14,6% |
-| 300 | `matmul_numpy` | O(n³) vectorizado | 6,040e-03 | 5,195e-09 | 1,798e-09 | ±2,5% |
-| 300 | `matmul_python` | O(n³) en Python | 9,967e-01 | 9,059e-07 | 3,134e-07 | ±8,8% |
+| 100 | `matmul_numpy` | O(n³) vectorizado | 6,488e-04 | 5,542e-10 | 1,917e-10 | ±0,6% |
+| 100 | `matmul_python` | O(n³) en Python | 3,573e-02 | 3,364e-08 | 1,164e-08 | ±11,6% |
+| 200 | `matmul_numpy` | O(n³) vectorizado | 2,539e-03 | 2,399e-09 | 8,299e-10 | ±17,7% |
+| 200 | `matmul_python` | O(n³) en Python | 2,800e-01 | 2,405e-07 | 8,321e-08 | ±0,7% |
+| 300 | `matmul_numpy` | O(n³) vectorizado | 5,827e-03 | 4,989e-09 | 1,726e-09 | ±1,1% |
+| 300 | `matmul_python` | O(n³) en Python | 9,818e-01 | 8,904e-07 | 3,081e-07 | ±7,3% |
 
-**Resultado para n = 300:** `matmul_numpy` (O(n³) vectorizado) emite **174 veces menos** CO₂ que `matmul_python` (O(n³) en Python), produciendo exactamente el mismo resultado.
+**Resultado para n = 300:** `matmul_numpy` (O(n³) vectorizado) emite **178 veces menos** CO₂ que `matmul_python` (O(n³) en Python), produciendo exactamente el mismo resultado.
 
-**Qué hace cada variante.**
+**Qué significa cada algoritmo.**
 
 - **`matmul_python`** — Multiplica las matrices elemento por elemento, con tres bucles anidados escritos en Python. Cada operación pasa por el intérprete.
 - **`matmul_numpy`** — Delega la misma multiplicación a una biblioteca numérica compilada, que opera sobre bloques de datos a la vez en lugar de número por número.
@@ -341,20 +334,20 @@ Lo costoso es justamente encontrar esos 31 vecinos entre miles de datos, y es ah
 
 | n | algoritmo | complejidad | tiempo [s] | energía [kWh] | CO₂ [kg] | disp. |
 |---|---|---|---|---|---|---|
-| 2500 | `knn_ball_tree` | O(n·d) + O(n log n) | 1,905e-02 | 1,664e-08 | 5,758e-09 | ±0,7% |
-| 2500 | `knn_brute` | O(n·m·d) vectorizado | 3,780e-03 | 3,358e-09 | 1,162e-09 | ±1,1% |
-| 2500 | `knn_kd_tree` | O(n·d) + O(n log n) | 2,202e-02 | 2,050e-08 | 7,093e-09 | ±8,6% |
-| 5000 | `knn_ball_tree` | O(n·d) + O(n log n) | 6,135e-02 | 5,573e-08 | 1,928e-08 | ±7,7% |
-| 5000 | `knn_brute` | O(n·m·d) vectorizado | 9,020e-03 | 8,568e-09 | 2,965e-09 | ±14,9% |
-| 5000 | `knn_kd_tree` | O(n·d) + O(n log n) | 5,839e-02 | 5,495e-08 | 1,901e-08 | ±7,7% |
-| 10000 | `knn_ball_tree` | O(n·d) + O(n log n) | 2,252e-01 | 2,028e-07 | 7,019e-08 | ±5,2% |
-| 10000 | `knn_brute` | O(n·m·d) vectorizado | 2,139e-02 | 1,913e-08 | 6,618e-09 | ±2,9% |
-| 10000 | `knn_kd_tree` | O(n·d) + O(n log n) | 2,413e-01 | 2,109e-07 | 7,299e-08 | ±0,8% |
-| 20000 | `knn_ball_tree` | O(n·d) + O(n log n) | 8,257e-01 | 7,858e-07 | 2,719e-07 | ±15,7% |
-| 20000 | `knn_brute` | O(n·m·d) vectorizado | 5,416e-02 | 4,786e-08 | 1,656e-08 | ±4,7% |
-| 20000 | `knn_kd_tree` | O(n·d) + O(n log n) | 6,864e-01 | 6,116e-07 | 2,116e-07 | ±2,1% |
+| 2500 | `knn_ball_tree` | O(n·d) + O(n log n) | 1,934e-02 | 2,020e-08 | 6,989e-09 | ±17,6% |
+| 2500 | `knn_brute` | O(n·m·d) vectorizado | 4,086e-03 | 4,632e-09 | 1,603e-09 | ±36,2% |
+| 2500 | `knn_kd_tree` | O(n·d) + O(n log n) | 2,262e-02 | 3,234e-08 | 1,119e-08 | ±8,9% |
+| 5000 | `knn_ball_tree` | O(n·d) + O(n log n) | 6,193e-02 | 5,690e-08 | 1,969e-08 | ±2,9% |
+| 5000 | `knn_brute` | O(n·m·d) vectorizado | 9,305e-03 | 9,911e-09 | 3,429e-09 | ±10,9% |
+| 5000 | `knn_kd_tree` | O(n·d) + O(n log n) | 5,901e-02 | 5,781e-08 | 2,000e-08 | ±5,5% |
+| 10000 | `knn_ball_tree` | O(n·d) + O(n log n) | 2,234e-01 | 1,951e-07 | 6,750e-08 | ±1,6% |
+| 10000 | `knn_brute` | O(n·m·d) vectorizado | 2,082e-02 | 1,956e-08 | 6,769e-09 | ±9,6% |
+| 10000 | `knn_kd_tree` | O(n·d) + O(n log n) | 2,399e-01 | 2,136e-07 | 7,390e-08 | ±1,2% |
+| 20000 | `knn_ball_tree` | O(n·d) + O(n log n) | 8,246e-01 | 7,688e-07 | 2,660e-07 | ±4,3% |
+| 20000 | `knn_brute` | O(n·m·d) vectorizado | 5,425e-02 | 5,711e-08 | 1,976e-08 | ±7,6% |
+| 20000 | `knn_kd_tree` | O(n·d) + O(n log n) | 6,872e-01 | 6,652e-07 | 2,302e-07 | ±8,9% |
 
-**Resultado para n = 20.000:** `knn_brute` (O(n·m·d) vectorizado) emite **16,4 veces menos** CO₂ que `knn_ball_tree` (O(n·d) + O(n log n)), produciendo exactamente el mismo resultado.
+**Resultado para n = 20.000:** `knn_brute` (O(n·m·d) vectorizado) emite **13,5 veces menos** CO₂ que `knn_ball_tree` (O(n·d) + O(n log n)), produciendo exactamente el mismo resultado.
 
 **Calidad del modelo.** La comparación es entre implementaciones equivalentes, no entre modelos distintos: las tres variantes devuelven las mismas predicciones y por lo tanto la misma exactitud. Se informa para dejar constancia de que el trabajo medido es un modelo que efectivamente aprende, y no un cómputo vacío.
 
@@ -365,7 +358,7 @@ Lo costoso es justamente encontrar esos 31 vecinos entre miles de datos, y es ah
 | 10.000 | 92,20% |
 | 20.000 | 96,28% |
 
-**Qué hace cada variante.**
+**Qué significa cada algoritmo.**
 
 - **`knn_brute`** — Mide la distancia del dato nuevo contra todos los datos conocidos, uno por uno, y se queda con los 31 más cercanos. No descarta nada, pero hace esas cuentas de a bloques y reparte el trabajo entre todos los núcleos.
 - **`knn_kd_tree`** — Antes de clasificar, acomoda los datos conocidos dividiendo el espacio con cortes rectos, como una grilla irregular. Al buscar los vecinos descarta de golpe las zonas que quedaron lejos, en lugar de recorrer dato por dato.
@@ -379,8 +372,8 @@ Lo costoso es justamente encontrar esos 31 vecinos entre miles de datos, y es ah
 
 Sobre las 42 configuraciones medidas, las emisiones resultan casi
 exactamente proporcionales al tiempo de ejecución: al relacionar ambas magnitudes, un
-algoritmo que tarda el doble emite 2,00 veces más, y la relación
-explica el 99,99% de la variación observada.
+algoritmo que tarda el doble emite 2,01 veces más, y la relación
+explica el 99,95% de la variación observada.
 
 Conviene entender por qué, porque no es una ley general. Casi todas las cargas de
 este banco de pruebas usan el procesador de la misma forma: un solo núcleo,
@@ -394,6 +387,31 @@ buen indicador de la huella, incluso en la carga que ocupa todos los núcleos. N
 conviene generalizarlo: un programa que pasa el tiempo esperando respuesta de disco
 o de red acumula segundos sin consumir casi nada, y ahí la relación se rompe. Este
 trabajo no mide ese caso.
+
+**Cómo leer el gráfico que sigue.**
+
+Cada punto es **un algoritmo resolviendo un problema de un tamaño determinado**.
+Ordenar una lista de 8.000 elementos con `bubble_sort` es un punto; ordenar una de
+1.000 con el mismo algoritmo es otro punto distinto. Hay 42 en total, uno por cada
+combinación de algoritmo y tamaño que se midió.
+
+La posición de cada punto dice dos cosas: **cuanto más a la derecha está, más tarda**
+esa ejecución, y **cuanto más arriba, más CO₂ emite**. Así que el rincón de abajo a la
+izquierda es el de los algoritmos rápidos y limpios, y el de arriba a la derecha, el
+de los lentos y sucios.
+
+Los dos ejes avanzan **multiplicando por diez en cada marca**, en lugar de sumar una
+cantidad fija. Hace falta porque las duraciones son muy distintas entre sí: `fib_iterativo`
+tarda 449,30 milmillonésimas de segundo y `bubble_sort` tarda
+2,11 segundos, o sea 4.690.157 veces más. En una escala
+común, todos los puntos rápidos quedarían apilados contra el borde izquierdo y no
+se vería nada.
+
+Y lo que hay que mirar es que **los puntos forman una línea recta**, sin desparramarse:
+el algoritmo que tarda el doble emite alrededor del doble, y eso se cumple en todo el
+rango medido, desde las millonésimas de segundo hasta los dos segundos. Si el tiempo
+y las emisiones no tuvieran relación, los puntos aparecerían dispersos por todo el
+gráfico en lugar de alineados.
 
 ![Tiempo vs CO₂](resultados/graficos/05_tiempo_vs_co2.png)
 
@@ -440,16 +458,16 @@ escritorio, no el de una notebook) y de ahí habría derivado toda la energía.
 ### 5.3 Magnitud de los resultados
 
 Las emisiones de una ejecución individual son diminutas. La suma de todas las
-configuraciones medidas en este benchmark asciende a 2,184e-06 kgCO₂eq.
+configuraciones medidas en este benchmark asciende a 2,060e-06 kgCO₂eq.
 Presentar solo ese número invitaría a concluir que el problema es irrelevante, y
 sería una lectura equivocada: el software se ejecuta a escala.
 
 - El peor algoritmo medido (`bubble_sort`, cantidad de elementos = 8.000) repetido
-  1.000.000 veces (un millón de ejecuciones (una función invocada por un servicio web de tamaño medio a lo largo de unos meses)) emite 0,724 kgCO₂eq,
-  equivalente a 5 km recorridos en auto, 209 cargas completas de un smartphone.
+  1.000.000 veces, lo que invoca un servicio web de tamaño medio a lo largo de unos meses, emite 0,621 kgCO₂eq,
+  equivalente a 4 km recorridos en auto, 179 cargas completas de un smartphone.
 - El peor algoritmo medido (`bubble_sort`, cantidad de elementos = 8.000) repetido
-  1.000.000.000 veces (mil millones de ejecuciones (escala de un servicio masivo)) emite 724,297 kgCO₂eq,
-  equivalente a 4.656 km recorridos en auto, 209.334 cargas completas de un smartphone.
+  1.000.000.000 veces, la escala de un servicio masivo, emite 620,941 kgCO₂eq,
+  equivalente a 3.991 km recorridos en auto, 179.463 cargas completas de un smartphone.
 
 Equivalencias utilizadas:
 
@@ -471,97 +489,68 @@ este trabajo no midió: son valores de referencia declarados como supuestos.
 
 ### 6.1 Árboles para compensar lo medido
 
-El benchmark completo emitió 2,184e-06 kgCO₂eq (secc 5.3). Compensarlo
-requiere 7,280e-09 árboles adultos: en la práctica, ninguno. Un solo
+El benchmark completo emitió 2,060e-06 kgCO₂eq (secc 5.3). Compensarlo
+requiere 6,867e-09 árboles adultos: en la práctica, ninguno. Un solo
 árbol adulto absorbe en un año lo que emite este benchmark repetido
-137.368.327 veces.
+145.622.141 veces.
 
 La cifra recién significa algo a escala de uso real. Con el peor algoritmo medido
 (`bubble_sort`, cantidad de elementos = 8.000):
 
 | Escala de uso | CO₂ | Árboles adultos | Árboles recién plantados |
 |---|---|---|---|
-| 1.000.000 ejecuciones | 0,724 kgCO₂eq | 2,4e-03 | 0,024 |
-| 1.000.000.000 ejecuciones | 724,297 kgCO₂eq | 2,41 | 24,14 |
+| 1.000.000 ejecuciones | 0,621 kgCO₂eq | 2,1e-03 | 0,021 |
+| 1.000.000.000 ejecuciones | 620,941 kgCO₂eq | 2,07 | 20,70 |
 
 Y al revés: cuántas ejecuciones alcanza a compensar un solo árbol en un año, según
 qué algoritmo se elija para hacer el mismo trabajo.
 
 | Árbol | `bubble_sort` | `timsort_nativo` |
 |---|---|---|
-| Árbol adulto | 414.194.802 | 1.247.434.190.610 |
-| Árbol recién plantado | 41.419.480 | 124.743.419.061 |
+| Árbol adulto | 483.137.915 | 1.259.707.146.246 |
+| Árbol recién plantado | 48.313.792 | 125.970.714.625 |
 
 Resolver el mismo problema con `timsort_nativo` en lugar de `bubble_sort`
-hace que el mismo árbol alcance para 3.012 veces más ejecuciones.
+hace que el mismo árbol alcance para 2.607 veces más ejecuciones.
 
 ### 6.2 Horas de procesamiento que compensa un árbol
 
 Mientras el equipo calcula, la tasa de emisión es prácticamente la misma para los
 11 algoritmos medidos: lo que cambia entre ellos es cuánto tiempo la
 sostienen, no la intensidad. La mediana de esta corrida es
-1,109 gramos de CO₂ por hora de procesamiento.
+1,073 gramos de CO₂ por hora de procesamiento.
 
 | Árbol | Horas que compensa | Equivale a | De cómputo continuo |
 |---|---|---|---|
-| Árbol adulto | 270.544 h | 11.273 días | 30,9 años |
-| Árbol recién plantado | 27.054 h | 1.127 días | 3,1 años |
+| Árbol adulto | 279.518 h | 11.647 días | 31,9 años |
+| Árbol recién plantado | 27.952 h | 1.165 días | 3,2 años |
 
 Es decir que un árbol recién plantado absorbe en un año lo que este equipo emite
-calculando sin parar durante 3,1 años. Puesto al revés: una notebook
-trabajando a pleno los 365 días necesita 0,32 árboles recién
+calculando sin parar durante 3,2 años. Puesto al revés: una notebook
+trabajando a pleno los 365 días necesita 0,31 árboles recién
 plantados para quedar neutra.
 
 Estas cifras son de este equipo y esta red eléctrica (secc 3.1 y secc 2). Un servidor de
 centro de datos emite por hora uno o dos órdenes de magnitud más.
 
-## 7. Limitaciones
+## 7. Conclusiones
 
-Se declaran explícitamente porque condicionan cómo hay que leer los resultados:
-
-1. **El consumo medido es del procesador completo**, no exclusivamente del algoritmo
-   (secc 5.2). Se midió con el equipo descargado, pero el ruido de fondo del sistema
-   operativo no se elimina del todo.
-2. **Parte de la ventana de medición ocurre con el algoritmo ya terminado**, porque
-   tomar la lectura lleva su propio tiempo (secc 5.2). Eso suma algo de consumo ajeno,
-   y pesa más en los algoritmos más rápidos.
-3. **Solo se cuenta la energía de uso.** Queda afuera la huella de fabricar el equipo,
-   transportarlo y descartarlo. En un análisis de ciclo de vida completo, fabricar
-   suele pesar más que usar.
-4. **El factor de emisión es un promedio anual.** La red eléctrica no emite lo mismo a
-   toda hora: depende de qué centrales estén generando en ese momento. Correr un
-   proceso de madrugada o al mediodía no tiene el mismo impacto real.
-5. **Los resultados son de este equipo.** Otro procesador, otro sistema operativo u
-   otra red eléctrica dan otras cifras absolutas. Las diferencias *entre* algoritmos,
-   que son la conclusión del trabajo, sí son trasladables.
-
-## 8. Conclusiones
-
-1. En Algoritmos de ordenamiento (n=8000), `timsort_nativo` emite **3.012×** menos CO₂ que `bubble_sort` para un resultado idéntico.
-2. En Cálculo de Fibonacci (n=32), `fib_iterativo` emite **319.674×** menos CO₂ que `fib_recursivo` para un resultado idéntico.
-3. En Multiplicación de matrices (n=300), `matmul_numpy` emite **174×** menos CO₂ que `matmul_python` para un resultado idéntico.
-4. En Entrenamiento e inferencia de un modelo de ML (KNN) (n=20000), `knn_brute` emite **16,4×** menos CO₂ que `knn_ball_tree` para un resultado idéntico.
+1. En Algoritmos de ordenamiento (n=8000), `timsort_nativo` emite **2.607×** menos CO₂ que `bubble_sort` para un resultado idéntico.
+2. En Cálculo de Fibonacci (n=32), `fib_iterativo` emite **328.443×** menos CO₂ que `fib_recursivo` para un resultado idéntico.
+3. En Multiplicación de matrices (n=300), `matmul_numpy` emite **178×** menos CO₂ que `matmul_python` para un resultado idéntico.
+4. En Entrenamiento e inferencia de un modelo de ML (KNN) (n=20000), `knn_brute` emite **13,5×** menos CO₂ que `knn_ball_tree` para un resultado idéntico.
 
 **La hipótesis se verifica.** Las diferencias de huella entre algoritmos
 equivalentes no son marginales: alcanzan varios órdenes de magnitud. **Elegir un
 algoritmo adecuado no es solo una decisión de rendimiento, es también una decisión
 ambiental**.
 
-## 9. Reproducción
+## 8. Reproducción
 
 ```bash
 uv sync                            # instala el entorno exacto desde uv.lock
 uv run huella-carbono --completo   # corre el benchmark y regenera este informe
 ```
-
-Artefactos generados:
-
-| Artefacto | Contenido |
-|---|---|
-| `resultados/simulacion_huella_carbono.csv` | **resultado de la simulación**: una fila por medición, con el tiempo, la energía y el CO₂ de cada algoritmo y tamaño. Los promedios de este informe salen de ahí. |
-| `resultados/metadatos.json` | con qué equipo, qué versiones y qué parámetros se corrió |
-| `resultados/graficos/*.png` | gráficos incluidos en este informe |
-| `INFORME.md` | este documento |
 
 Entradas de datos versionadas con el proyecto (no se generan, se leen):
 
@@ -570,7 +559,7 @@ Entradas de datos versionadas con el proyecto (no se generan, se leen):
 | `datos/intensidad_carbono_argentina.json` | serie de intensidad de carbono de la red argentina y factor oficial de contraste, con su procedencia |
 | `datos/equivalencias_co2.json` | factores para traducir kgCO₂eq a magnitudes tangibles (secc 5.3), con su fuente |
 
-## 10. Fuentes y referencias
+## 9. Fuentes y referencias
 
 **Datos de emisiones de la red eléctrica**
 
@@ -583,14 +572,3 @@ Entradas de datos versionadas con el proyecto (no se generan, se leen):
 4. CodeCarbon 3.3.0 — herramienta de medición usada en este trabajo (secc 3.4). <https://github.com/mlco2/codecarbon> · <https://mlco2.github.io/codecarbon/>. Su tabla interna de factores de emisión por país da para Argentina 354,1 gCO₂eq/kWh, valor de 2023, que este trabajo no adopta por el motivo explicado en secc 2.
 5. scikit-learn 1.9.0 — provee el clasificador de vecinos más cercanos y el generador del conjunto de datos sintético del cuarto experimento. <https://scikit-learn.org/stable/>.
 6. Utilidad de consumo del sistema operativo (macOS) — es el sensor del que se lee la potencia real del procesador en este equipo (secc 3.4).
-
-**Equivalencias de referencia**
-
-7. GFEI / ONU Medio Ambiente, estudio de línea de base de eficiencia de vehículos livianos en Argentina (2018), sobre los vehículos registrados entre 2006 y 2017: 7,9 L/100 km. <https://www.globalfueleconomy.org/news/event-showcases-argentina-s-new-comparative-vehicle-efficiency-label-and-electric-shift> (consultado el 2026-08-22).
-8. Sistema Nacional de Inventario de GEI de Argentina (SNIGEIAR), Factores de Emisión para huella de carbono 2025, Subsecretaría de Ambiente de la Nación, Tabla 2 «Combustibles - Transporte»: 1,9693 kgCO₂/L para Nafta Grado 2 (Súper) con bioetanol 12%, CO₂ fósil. <https://inventariogei.ambiente.gob.ar/files/Factores_de_Emision_SNIGEIAR_para_HC_2025.pdf> (consultado el 2026-08-22). Combinado con el consumo anterior da la equivalencia «km recorridos en auto» de secc 5.3: 155,6 gCO₂/km. El factor por km se calcula como consumo × factor del combustible, con datos argentinos en ambos términos. Se cuenta solo el CO₂ fósil: la nafta argentina lleva 12% de bioetanol por norma y su CO₂ biogénico (0,1795 kgCO₂/L, es decir 14,2 gCO₂/km) se informa aparte según la práctica del inventario nacional.
-9. Equivalencias eléctricas de secc 5.3: se definen por su consumo en kWh («cargas completas de un smartphone» = 0,010 kWh) y se convierten con el factor de emisión de este informe, de modo que no pueden quedar desfasadas del FE en uso. Definidas en `datos/equivalencias_co2.json`.
-
-**Metodología**
-
-10. UNFCCC. *Tool to calculate the emission factor for an electricity system*, versión 7 — metodología del factor oficial argentino citado arriba. <https://cdm.unfccc.int/methodologies/PAmethodologies/tools/am-tool-07-v7.0.pdf>.
-11. The Green Software Foundation. *Software Carbon Intensity (SCI) Specification* — marco de referencia para la fórmula CO₂ = E × FE × PUE usada en secc 2. <https://sci.greensoftware.foundation/>.

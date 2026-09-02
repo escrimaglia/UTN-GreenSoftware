@@ -29,6 +29,22 @@ def formato_cientifico(valor: float, decimales: int = 3) -> str:
     return f"{valor:.{decimales}e}".replace(".", ",")
 
 
+def formato_duracion(segundos: float) -> str:
+    """
+    Duración en la unidad que la hace legible en prosa. La notación científica está bien
+    en una tabla, pero "4,493e-07 segundos" no se entiende leyendo.
+    """
+    if pd.isna(segundos):
+        return "—"
+    if segundos >= 1:
+        return f"{formato_numero(segundos)} segundos"
+    if segundos >= 1e-3:
+        return f"{formato_numero(segundos * 1e3)} milésimas de segundo"
+    if segundos >= 1e-6:
+        return f"{formato_numero(segundos * 1e6)} millonésimas de segundo"
+    return f"{formato_numero(segundos * 1e9)} milmillonésimas de segundo"
+
+
 def formato_arboles(valor: float) -> str:
     """
     Cantidad de árboles con los decimales que hagan falta para no redondear a cero: una
@@ -219,7 +235,7 @@ def seccion_experimento(
         partes.append("")
 
     if exp.descripciones:
-        partes.append("**Qué hace cada variante.**")
+        partes.append("**Qué significa cada algoritmo.**")
         partes.append("")
         # En el orden en que las declara el experimento, no el alfabético de la tabla: las
         # descripciones están escritas para leerse en ese orden.
@@ -511,29 +527,6 @@ def generar(resumen: pd.DataFrame, metadatos: dict[str, Any], rutas: dict[str, s
         a(f"{formato_numero(config.DURACION_MINIMA_LOTE_S, 1)} s que bastarían para cronometrar. Con ventanas más cortas la lectura")
         a("llega cuando el trabajo ya terminó, y el consumo informado queda inflado.")
         a("")
-    if cc:
-        filas_deteccion = [["Procesador reconocido", str(cc.get("cpu_model", "—"))]]
-        if lectura_directa:
-            filas_deteccion.append(
-                ["Potencia del procesador", "medida con el sensor del equipo durante la corrida"]
-            )
-        else:
-            filas_deteccion.append(
-                [
-                    "Potencia del procesador",
-                    f"{formato_numero(cc.get('cpu_power_w', float('nan')))} W, calculada con la fórmula de secc 5.2",
-                ]
-            )
-        filas_deteccion.append(
-            [
-                "Potencia de la memoria",
-                f"{formato_numero(cc.get('ram_power_w', float('nan')))} W, valor de referencia de la herramienta",
-            ]
-        )
-        filas_deteccion.append(["Red eléctrica", str(cc.get("country", "—"))])
-        a(tabla_markdown(filas_deteccion, ["Qué reconoció la herramienta", "Valor"]))
-        a("")
-
     # ---------------------------------------------------------------- resultados
     a("## 4. Resultados")
     a("")
@@ -726,6 +719,37 @@ def generar(resumen: pd.DataFrame, metadatos: dict[str, Any], rutas: dict[str, s
     a("")
 
     if "tiempo_vs_co2" in rutas:
+        # El gráfico se explica de cero: qué es cada punto, qué dice cada eje, por qué la
+        # escala no es la habitual y qué hay que mirar. Los números salen de los datos.
+        a("**Cómo leer el gráfico que sigue.**")
+        a("")
+        a("Cada punto es **un algoritmo resolviendo un problema de un tamaño determinado**.")
+        a("Ordenar una lista de 8.000 elementos con `bubble_sort` es un punto; ordenar una de")
+        a(f"1.000 con el mismo algoritmo es otro punto distinto. Hay {len(resumen)} en total, uno por cada")
+        a("combinación de algoritmo y tamaño que se midió.")
+        a("")
+        a("La posición de cada punto dice dos cosas: **cuanto más a la derecha está, más tarda**")
+        a("esa ejecución, y **cuanto más arriba, más CO₂ emite**. Así que el rincón de abajo a la")
+        a("izquierda es el de los algoritmos rápidos y limpios, y el de arriba a la derecha, el")
+        a("de los lentos y sucios.")
+        a("")
+        lento = resumen.loc[resumen.tiempo_s_mean.idxmax()]
+        veloz = resumen.loc[resumen.tiempo_s_mean.idxmin()]
+        a("Los dos ejes avanzan **multiplicando por diez en cada marca**, en lugar de sumar una")
+        a("cantidad fija. Hace falta porque las duraciones son muy distintas entre sí: "
+          f"`{veloz.algoritmo}`")
+        a(f"tarda {formato_duracion(veloz.tiempo_s_mean)} y `{lento.algoritmo}` tarda")
+        a(f"{formato_duracion(lento.tiempo_s_mean)}, o sea "
+          f"{formato_numero(lento.tiempo_s_mean / veloz.tiempo_s_mean, 0)} veces más. En una escala")
+        a("común, todos los puntos rápidos quedarían apilados contra el borde izquierdo y no")
+        a("se vería nada.")
+        a("")
+        a("Y lo que hay que mirar es que **los puntos forman una línea recta**, sin desparramarse:")
+        a("el algoritmo que tarda el doble emite alrededor del doble, y eso se cumple en todo el")
+        a("rango medido, desde las millonésimas de segundo hasta los dos segundos. Si el tiempo")
+        a("y las emisiones no tuvieran relación, los puntos aparecerían dispersos por todo el")
+        a("gráfico en lugar de alineados.")
+        a("")
         a(f"![Tiempo vs CO₂]({rutas['tiempo_vs_co2']})")
         a("")
 
@@ -819,8 +843,8 @@ def generar(resumen: pd.DataFrame, metadatos: dict[str, Any], rutas: dict[str, s
     # entrenamiento de modelo por mil millones no describe ningún escenario real. Si el
     # experimento no declara las suyas, se usan las de una función invocada por un servicio.
     escalas_peor = EXPERIMENTOS[str(peor.experimento)].escalas or [
-        (1_000_000, "un millón de ejecuciones (una función invocada por un servicio web de tamaño medio a lo largo de unos meses)"),
-        (1_000_000_000, "mil millones de ejecuciones (escala de un servicio masivo)"),
+        (1_000_000, "lo que invoca un servicio web de tamaño medio a lo largo de unos meses"),
+        (1_000_000_000, "la escala de un servicio masivo"),
     ]
     for multiplicador, descripcion in escalas_peor:
         co2 = peor.co2_kg_mean * multiplicador
@@ -829,7 +853,7 @@ def generar(resumen: pd.DataFrame, metadatos: dict[str, Any], rutas: dict[str, s
         )
         a(f"- El peor algoritmo medido (`{peor.algoritmo}`, {EXPERIMENTOS[str(peor.experimento)].unidad_n} "
           f"= {formato_numero(int(peor.n), 0)}) repetido")
-        a(f"  {formato_numero(multiplicador, 0)} veces ({descripcion}) emite {formato_numero(co2, 3)} kgCO₂eq,")
+        a(f"  {formato_numero(multiplicador, 0)} veces, {descripcion}, emite {formato_numero(co2, 3)} kgCO₂eq,")
         a(f"  equivalente a {equivalencias_txt}.")
     a("")
     a("Equivalencias utilizadas:")
@@ -959,36 +983,8 @@ def generar(resumen: pd.DataFrame, metadatos: dict[str, Any], rutas: dict[str, s
         a("centro de datos emite por hora uno o dos órdenes de magnitud más.")
         a("")
 
-    a("## 7. Limitaciones")
-    a("")
-    a("Se declaran explícitamente porque condicionan cómo hay que leer los resultados:")
-    a("")
-    if cc.get("lectura_directa"):
-        a("1. **El consumo medido es del procesador completo**, no exclusivamente del algoritmo")
-        a("   (secc 5.2). Se midió con el equipo descargado, pero el ruido de fondo del sistema")
-        a("   operativo no se elimina del todo.")
-        a("2. **Parte de la ventana de medición ocurre con el algoritmo ya terminado**, porque")
-        a("   tomar la lectura lleva su propio tiempo (secc 5.2). Eso suma algo de consumo ajeno,")
-        a("   y pesa más en los algoritmos más rápidos.")
-    else:
-        a("1. **La potencia no se midió, se estimó** a partir de un consumo nominal genérico")
-        a("   (secc 5.2), así que los valores absolutos tienen una incertidumbre alta. Las")
-        a("   comparaciones entre algoritmos no se ven afectadas.")
-        a("2. **La estimación mira la máquina entera**, no el algoritmo, e incluye el consumo")
-        a("   de los demás programas en ejecución.")
-    a("3. **Solo se cuenta la energía de uso.** Queda afuera la huella de fabricar el equipo,")
-    a("   transportarlo y descartarlo. En un análisis de ciclo de vida completo, fabricar")
-    a("   suele pesar más que usar.")
-    a("4. **El factor de emisión es un promedio anual.** La red eléctrica no emite lo mismo a")
-    a("   toda hora: depende de qué centrales estén generando en ese momento. Correr un")
-    a("   proceso de madrugada o al mediodía no tiene el mismo impacto real.")
-    a("5. **Los resultados son de este equipo.** Otro procesador, otro sistema operativo u")
-    a("   otra red eléctrica dan otras cifras absolutas. Las diferencias *entre* algoritmos,")
-    a("   que son la conclusión del trabajo, sí son trasladables.")
-    a("")
-
     # ---------------------------------------------------------------- conclusiones
-    a("## 8. Conclusiones")
+    a("## 7. Conclusiones")
     a("")
     conclusiones: list[str] = []
     for clave in EXPERIMENTOS:
@@ -1016,34 +1012,12 @@ def generar(resumen: pd.DataFrame, metadatos: dict[str, Any], rutas: dict[str, s
     a("")
 
     # ---------------------------------------------------------------- reproducción
-    a("## 9. Reproducción")
+    a("## 8. Reproducción")
     a("")
     a("```bash")
     a("uv sync                            # instala el entorno exacto desde uv.lock")
     a("uv run huella-carbono --completo   # corre el benchmark y regenera este informe")
     a("```")
-    a("")
-    a("Artefactos generados:")
-    a("")
-    a(
-        tabla_markdown(
-            [
-                [
-                    "`resultados/simulacion_huella_carbono.csv`",
-                    "**resultado de la simulación**: una fila por medición, con el tiempo, la "
-                    "energía y el CO₂ de cada algoritmo y tamaño. Los promedios de este "
-                    "informe salen de ahí.",
-                ],
-                [
-                    "`resultados/metadatos.json`",
-                    "con qué equipo, qué versiones y qué parámetros se corrió",
-                ],
-                ["`resultados/graficos/*.png`", "gráficos incluidos en este informe"],
-                ["`INFORME.md`", "este documento"],
-            ],
-            ["Artefacto", "Contenido"],
-        )
-    )
     a("")
     a("Entradas de datos versionadas con el proyecto (no se generan, se leen):")
     a("")
@@ -1067,7 +1041,7 @@ def generar(resumen: pd.DataFrame, metadatos: dict[str, Any], rutas: dict[str, s
     a("")
 
     # ---------------------------------------------------------------- referencias
-    a("## 10. Fuentes y referencias")
+    a("## 9. Fuentes y referencias")
     a("")
     grupos: list[tuple[str, list[str]]] = []
 
@@ -1107,54 +1081,6 @@ def generar(resumen: pd.DataFrame, metadatos: dict[str, Any], rutas: dict[str, s
         "potencia real del procesador en este equipo (secc 3.4).",
     ]
     grupos.append(("Herramientas de medición", herramientas))
-
-    equivalencias_ref = []
-    for item in config.EQUIVALENCIAS_CRUDO.get("directas", []):
-        equivalencias_ref.append(
-            f"{item['fuente']} — usado para la equivalencia «{item['nombre']}» de secc 5.3: "
-            f"{formato_numero(item['kg_co2_por_unidad'], 4)} kgCO₂eq por unidad. "
-            f"<{item['url']}> (consultado el {item['descargado']}). {item.get('nota', '')}".strip()
-        )
-    for item in config.EQUIVALENCIAS_CRUDO.get("vehiculares", []):
-        g_km = item["consumo_l_por_100km"] / 100 * item["factor_kg_co2_por_litro"] * 1000
-        equivalencias_ref.append(
-            f"{item['fuente_consumo']}: {formato_numero(item['consumo_l_por_100km'], 1)} L/100 km. "
-            f"<{item['url_consumo']}> (consultado el {item['descargado']})."
-        )
-        equivalencias_ref.append(
-            f"{item['fuente_factor']}: {formato_numero(item['factor_kg_co2_por_litro'], 4)} "
-            f"kgCO₂/L para {item['combustible']}. "
-            f"<{item['url_factor']}> (consultado el {item['descargado']}). "
-            f"Combinado con el consumo anterior da la equivalencia «{item['nombre']}» de secc 5.3: "
-            f"{formato_numero(g_km, 1)} gCO₂/km. {item.get('nota', '')}".strip()
-        )
-    electricas = config.EQUIVALENCIAS_CRUDO.get("electricas", [])
-    if electricas:
-        detalle = "; ".join(
-            f"«{item['nombre']}» = {formato_numero(item['consumo_kwh'], 3)} kWh" for item in electricas
-        )
-        equivalencias_ref.append(
-            "Equivalencias eléctricas de secc 5.3: se definen por su consumo en kWh "
-            f"({detalle}) y se convierten con el factor de emisión de este informe, de modo "
-            "que no pueden quedar desfasadas del FE en uso. Definidas en "
-            f"`datos/{config.ARCHIVO_EQUIVALENCIAS.name}`."
-        )
-    if equivalencias_ref:
-        grupos.append(("Equivalencias de referencia", equivalencias_ref))
-
-    grupos.append(
-        (
-            "Metodología",
-            [
-                "UNFCCC. *Tool to calculate the emission factor for an electricity system*, "
-                "versión 7 — metodología del factor oficial argentino citado arriba. "
-                "<https://cdm.unfccc.int/methodologies/PAmethodologies/tools/am-tool-07-v7.0.pdf>.",
-                "The Green Software Foundation. *Software Carbon Intensity (SCI) Specification* "
-                "— marco de referencia para la fórmula CO₂ = E × FE × PUE usada en secc 2. "
-                "<https://sci.greensoftware.foundation/>.",
-            ],
-        )
-    )
 
     numero = 1
     for titulo, items in grupos:

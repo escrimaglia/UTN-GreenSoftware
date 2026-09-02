@@ -1,6 +1,6 @@
 [project]
 name = "huella-carbono"
-version = "0.2.3"
+version = "0.4.3"
 description = "Medición de la huella de carbono de algoritmos en Python — proyecto UTN"
 readme = "README.md"
 authors = [

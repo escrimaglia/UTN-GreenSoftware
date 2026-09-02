@@ -1,6 +1,6 @@
 {
-  "fecha": "2026-08-23 20:52:55",
-  "plataforma": "macOS-26.5.2-arm64-arm-64bit",
+  "fecha": "2026-09-01 19:35:49",
+  "plataforma": "macOS-26.6.2-arm64-arm-64bit",
   "procesador": "arm",
   "cpu_nucleos_logicos": 12,
   "cpu_nucleos_fisicos": 12,
@@ -33,8 +33,8 @@
   "limite_hilos_entorno": {},
   "codecarbon_deteccion": {
     "cpu_model": "Apple M2 Pro",
-    "cpu_power_w": 2.8889,
-    "segundos_deteccion_hardware": 2.86,
+    "cpu_power_w": 2.3073583333333336,
+    "segundos_deteccion_hardware": 2.83,
     "tdp_en_tabla_codecarbon": null,
     "tdp_por_defecto_codecarbon_w": 85.0,
     "archivo_tdp_codecarbon": "cpu_power.csv",
@@ -48,9 +48,9 @@
     "requiere_ventana_muestreo": true,
     "motivo_estimacion": null,
     "ram_power_w": 3.0,
-    "os": "macOS-26.5.2-arm64-arm-64bit",
+    "os": "macOS-26.6.2-arm64-arm-64bit",
     "country": "Argentina",
-    "run_id": "6f3b0b90-5f73-44d2-9306-b10d15f9005f"
+    "run_id": "66f7e679-e344-4eff-afa8-1ad2c930cd11"
   },
   "ventana_medicion_s": 3.0
 }
