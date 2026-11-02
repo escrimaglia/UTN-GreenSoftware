@@ -1,19 +1,19 @@
-# Calcular la huella de carbono de los algoritmos de Python
+# Compute the carbon footprint of Python algorithms
 # By Ed Scrimaglia
 
 """
-Generación de los gráficos del informe.
+Generation of the report charts.
 
-Todos los gráficos se construyen a partir del agregado de
-`resultados/simulacion_huella_carbono.csv`, de modo que no
-puedan desincronizarse de los datos medidos.
+All charts are built from the aggregate of
+`resultados/simulacion_huella_carbono.csv`, so they
+cannot drift out of sync with the measured data.
 """
 
 from __future__ import annotations
 
 import matplotlib
 
-matplotlib.use("Agg")  # backend sin ventana: el script corre sin entorno gráfico
+matplotlib.use("Agg")  # windowless backend: the script runs without a graphical environment
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -30,8 +30,8 @@ PALETA = {
     "fib_iterativo": "#2f7d5c",
     "matmul_python": "#c1443c",
     "matmul_numpy": "#2f7d5c",
-    # KNN: el color caliente es la variante multihilo, para que el contraste se lea también
-    # en el gráfico de escalado.
+    # KNN: the warm color is the multithreaded variant, so the contrast also reads
+    # in the scaling chart.
     "knn_brute": "#8a4fa8",
     "knn_kd_tree": "#e0913a",
     "knn_ball_tree": "#2f7d5c",
@@ -67,7 +67,7 @@ def color_algoritmo(algoritmo: str) -> str:
 
 
 def escalado_co2(resumen: pd.DataFrame, clave: str, nombre_archivo: str) -> str:
-    """CO2 por ejecución en función del tamaño de entrada, en escala log-log."""
+    """CO2 per run as a function of input size, on a log-log scale."""
     exp = config.EXPERIMENTOS[clave]
     datos = resumen[resumen.experimento == clave]
     fig, ax = plt.subplots(figsize=(7.5, 4.8))
@@ -89,21 +89,21 @@ def escalado_co2(resumen: pd.DataFrame, clave: str, nombre_archivo: str) -> str:
 
     ax.set_xscale("log")
     ax.set_yscale("log")
-    # Ticks en los tamaños realmente medidos: los ticks automáticos de la escala
-    # logarítmica (2×10³, 3×10³, ...) no coinciden con los puntos del experimento.
+    # Ticks at the sizes actually measured: the automatic ticks of the logarithmic
+    # scale (2×10³, 3×10³, ...) do not match the experiment points.
     tamanios = sorted(datos.n.unique())
     ax.set_xticks(tamanios)
     ax.set_xticklabels([f"{t:,}" for t in tamanios])
     ax.minorticks_off()
     ax.set_xlabel(exp.unidad_n)
-    ax.set_ylabel("kgCO₂eq por ejecución")
-    ax.set_title(f"{exp.titulo}: huella de carbono vs. tamaño de entrada")
+    ax.set_ylabel("kgCO₂eq per run")
+    ax.set_title(f"{exp.titulo}: carbon footprint vs. input size")
     ax.legend(frameon=False)
     return guardar_figura(fig, nombre_archivo)
 
 
 def comparativa_barras(resumen: pd.DataFrame, clave: str, nombre_archivo: str) -> str:
-    """Barras agrupadas de CO2 por algoritmo y tamaño, en escala logarítmica."""
+    """Grouped bars of CO2 by algorithm and size, on a logarithmic scale."""
     exp = config.EXPERIMENTOS[clave]
     datos = resumen[resumen.experimento == clave]
     tamanios = sorted(datos.n.unique())
@@ -127,19 +127,19 @@ def comparativa_barras(resumen: pd.DataFrame, clave: str, nombre_archivo: str) -
     ax.set_yscale("log")
     ax.set_xticks(x, [str(t) for t in tamanios])
     ax.set_xlabel(exp.unidad_n)
-    ax.set_ylabel("kgCO₂eq por ejecución (escala log)")
-    ax.set_title(f"{exp.titulo}: comparación de emisiones")
+    ax.set_ylabel("kgCO₂eq per run (log scale)")
+    ax.set_title(f"{exp.titulo}: emissions comparison")
     ax.legend(frameon=False)
     return guardar_figura(fig, nombre_archivo)
 
 
 def tiempo_vs_co2(resumen: pd.DataFrame, nombre_archivo: str = "05_tiempo_vs_co2.png") -> str:
     """
-    Dispersión tiempo vs. CO2 sobre todos los experimentos.
+    Time vs. CO2 scatter plot across all experiments.
 
-    La correlación es casi perfecta, pero eso es en buena medida una propiedad del
-    modelo de CodeCarbon —que estima la potencia con la carga global de la máquina— y
-    no una ley general. Ver §5.1 y §5.2 del informe.
+    The correlation is almost perfect, but that is largely a property of
+    CodeCarbon's model —which estimates power from the machine's overall load— and
+    not a general law. See §5.1 and §5.2 of the report.
     """
     fig, ax = plt.subplots(figsize=(7.5, 4.8))
     marcadores = {
@@ -176,18 +176,16 @@ def tiempo_vs_co2(resumen: pd.DataFrame, nombre_archivo: str = "05_tiempo_vs_co2
             color="#555555",
             linewidth=1.2,
             label=(
-                "tendencia: al doble de tiempo, "
-                # coma decimal, como en el resto del proyecto
-                f"{2 ** coef[0]:.2f}".replace(".", ",") + " veces más CO₂"
+                f"trend: twice the time, {2 ** coef[0]:.2f} times more CO₂"
             ),
         )
         texto = (
-            "Cada punto es un algoritmo resolviendo un problema de un tamaño dado,\n"
-            "por ejemplo ordenar una lista de 8.000 elementos.\n"
-            "Más a la derecha, más tarda. Más arriba, más CO₂ emite.\n"
-            "Los ejes multiplican por diez en cada marca, no suman.\n"
-            "Que los puntos formen una recta significa que el que tarda el doble\n"
-            "emite alrededor del doble."
+            "Each point is an algorithm solving a problem of a given size,\n"
+            "for example sorting a list of 8,000 elements.\n"
+            "Further right, it takes longer. Higher up, it emits more CO₂.\n"
+            "The axes multiply by ten at each tick, they do not add.\n"
+            "The points forming a straight line means that whatever takes twice as long\n"
+            "emits about twice as much."
         )
         ax.text(
             0.03,
@@ -202,15 +200,15 @@ def tiempo_vs_co2(resumen: pd.DataFrame, nombre_archivo: str = "05_tiempo_vs_co2
 
     ax.set_xscale("log")
     ax.set_yscale("log")
-    ax.set_xlabel("tiempo de ejecución [s]")
-    ax.set_ylabel("kgCO₂eq por ejecución")
-    ax.set_title("Relación entre tiempo de ejecución y emisiones")
+    ax.set_xlabel("execution time [s]")
+    ax.set_ylabel("kgCO₂eq per run")
+    ax.set_title("Relationship between execution time and emissions")
     ax.legend(frameon=False)
     return guardar_figura(fig, nombre_archivo)
 
 
 def generar_todos(resumen: pd.DataFrame) -> dict[str, str]:
-    """Genera los cinco gráficos del informe y devuelve {clave: ruta relativa}."""
+    """Generate the five report charts and return {key: relative path}."""
     aplicar_estilo()
     rutas: dict[str, str] = {}
     presentes = set(resumen.experimento.unique())

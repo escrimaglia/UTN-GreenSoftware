@@ -1,15 +1,15 @@
-# Calcular la huella de carbono de los algoritmos de Python
+# Compute the carbon footprint of Python algorithms
 # By Ed Scrimaglia
 
 """
-Medición del consumo energético con CodeCarbon.
+Energy consumption measurement with CodeCarbon.
 
-`MedidorCodeCarbon` es la única vía de medición del proyecto: de acá salen todas las
-cifras del informe. Lee la potencia del hardware cuando el equipo lo permite y la estima
-cuando no (ver `preferir_lectura_directa`).
+`MedidorCodeCarbon` is the project's only measurement path: every figure in the report
+comes from here. It reads power from the hardware when the machine allows it and estimates it
+when it does not (see `preferir_lectura_directa`).
 
-`calcular_lote` no mide consumo: dimensiona cuántas ejecuciones entran en la ventana de
-cada medición.
+`calcular_lote` does not measure consumption: it sizes how many runs fit in the window of
+each measurement.
 """
 
 from __future__ import annotations
@@ -27,21 +27,21 @@ def calcular_lote(
     ventana_minima_s: float = config.DURACION_MINIMA_LOTE_S,
 ) -> int:
     """
-    Determina cuántas ejecuciones meter en un lote para que la ventana medida dure al menos
-    `ventana_minima_s`. Sirve además de warm-up: deja cachés e intérprete calientes antes de
-    medir en serio.
+    Determine how many runs to put in a batch so that the measured window lasts at least
+    `ventana_minima_s`. It also serves as warm-up: it leaves caches and interpreter warm before
+    measuring for real.
 
-    La ventana mínima depende de cómo se obtenga la potencia: estimarla sólo exige salir de
-    la resolución del reloj, pero leerla del hardware exige que el muestreo ocurra mientras
-    el trabajo corre (ver `DURACION_MINIMA_LOTE_MUESTREO_S`).
+    The minimum window depends on how power is obtained: estimating it only requires getting
+    beyond the clock resolution, but reading it from the hardware requires sampling to happen while
+    the work is running (see `DURACION_MINIMA_LOTE_MUESTREO_S`).
 
-    El tiempo por ejecución NO se estima con una sola corrida: la primera es mucho más lenta
-    que las siguientes —cachés e intérprete fríos, y en NumPy o scikit-learn la
-    inicialización interna de la primera llamada—, y extrapolando de ella el lote queda muy
-    por debajo de la ventana pedida. Se crece un lote de sondeo hasta que dure lo suficiente
-    para ser una medición estable, y de ahí se extrapola.
+    The time per run is NOT estimated from a single run: the first one is much slower
+    than the following ones —cold caches and interpreter, and in NumPy or scikit-learn the
+    internal initialization of the first call—, and extrapolating from it leaves the batch far
+    below the requested window. A probe batch is grown until it lasts long enough
+    to be a stable measurement, and the extrapolation is done from there.
     """
-    funcion(entrada)  # warm-up: la primera ejecución no cuenta
+    funcion(entrada)  # warm-up: the first run does not count
 
     sondeo, duracion = 1, 0.0
     while sondeo <= config.MAX_EJECUCIONES_LOTE:
@@ -60,20 +60,20 @@ def calcular_lote(
 
 class MedidorCodeCarbon:
     """
-    Envoltorio sobre `OfflineEmissionsTracker` usando su API de tareas.
+    Wrapper around `OfflineEmissionsTracker` using its task API.
 
-    Dos decisiones deliberadas:
+    Two deliberate decisions:
 
-    - Se usa el tracker OFFLINE con `country_iso_code="ARG"`. El tracker online
-      geolocaliza por IP con una llamada de red, lo que haría el experimento no
-      reproducible y dependiente de la conexión.
-    - Se usa `start_task()` / `stop_task()` en lugar de crear un tracker por medición.
-      Verificado empíricamente: arrancar y detener un tracker cuesta unas décimas de
-      segundo que caen dentro de la ventana informada, así que un tracker por medición
-      infla la duración de mediciones de milisegundos en un orden de magnitud (medido:
-      0,42 s informados para 0,010 s de trabajo real). Con la API de tareas la duración
-      informada coincide con el tiempo real dentro del 1%. El costo de la detección se
-      mide en cada corrida y queda en `metadatos.json`
+    - The OFFLINE tracker is used with `country_iso_code="ARG"`. The online tracker
+      geolocates by IP with a network call, which would make the experiment
+      non-reproducible and dependent on the connection.
+    - `start_task()` / `stop_task()` are used instead of creating one tracker per measurement.
+      Verified empirically: starting and stopping a tracker costs a few tenths of a
+      second that fall inside the reported window, so one tracker per measurement
+      inflates the duration of millisecond measurements by an order of magnitude (measured:
+      0.42 s reported for 0.010 s of actual work). With the task API the reported
+      duration matches the actual time within 1%. The detection cost is
+      measured on every run and stored in `metadatos.json`
       (`codecarbon_deteccion.segundos_deteccion_hardware`).
     """
 
@@ -86,21 +86,21 @@ class MedidorCodeCarbon:
             country_iso_code="ARG",
             measure_power_secs=medir_cada_s,
             log_level="error",
-            # No se le deja escribir sus propios CSV: duplicaría en `emissions.csv` y en
-            # `emissions_base_<run_id>.csv` lo que ya queda en el CSV de la simulación. Los
-            # valores nativos que se citan en el informe salen de la API, no de esos archivos.
+            # It is not allowed to write its own CSVs: it would duplicate in `emissions.csv` and in
+            # `emissions_base_<run_id>.csv` what is already in the simulation CSV. The
+            # native values cited in the report come from the API, not from those files.
             save_to_file=False,
         )
         self.activo = False
         self.metadatos: dict[str, Any] = {}
-        # La librería inicializa el hardware recién en `start()`. Se fuerza acá para poder
-        # corregir su elección de fuente de potencia antes de que empiece a medir: lectura
-        # directa si el equipo la permite, estimación como fallback. Hecho esto, `start()`
-        # ya no reinicializa nada (`_hardware_initialized` queda en True).
+        # The library only initializes the hardware in `start()`. It is forced here so that
+        # its choice of power source can be corrected before it starts measuring: direct
+        # reading if the machine allows it, estimation as fallback. Once this is done, `start()`
+        # no longer reinitializes anything (`_hardware_initialized` stays True).
         self.tracker._ensure_hardware_ready()
         self.lectura = preferir_lectura_directa(self.tracker)
-        # Costo de la detección de hardware, medido en vez de estimado: es el argumento
-        # para usar la API de tareas en lugar de instanciar un tracker por medición.
+        # Hardware detection cost, measured rather than estimated: it is the argument
+        # for using the task API instead of instantiating one tracker per measurement.
         self.segundos_deteccion = time.perf_counter() - inicio_construccion
 
     def __enter__(self) -> "MedidorCodeCarbon":
@@ -122,11 +122,11 @@ class MedidorCodeCarbon:
         entrada: Any,
         lote: int = 1,
     ) -> dict[str, float]:
-        """Mide un lote de `lote` ejecuciones y normaliza el resultado por ejecución."""
+        """Measure a batch of `lote` runs and normalize the result per run."""
         self.tracker.start_task(nombre_tarea)
-        # El tiempo se cronometra alrededor del trabajo, no se toma de la duración que
-        # informa la librería: esa incluye lo que ella misma tarda en leer la potencia al
-        # cerrar la tarea. Se conservan las dos para que la diferencia quede a la vista.
+        # Time is measured around the work, not taken from the duration the library
+        # reports: that one includes the time the library itself takes to read power when
+        # closing the task. Both are kept so the difference is visible.
         inicio = time.perf_counter()
         for _ in range(lote):
             funcion(entrada)
@@ -145,10 +145,10 @@ class MedidorCodeCarbon:
                 "country": datos.country_name,
                 "run_id": str(datos.run_id),
             }
-        # El CO2 se recalcula a partir de la energía que mide CodeCarbon aplicando el factor
-        # de emisión más reciente (ver config): la librería convierte internamente con su
-        # dataset congelado en 2023. Se conserva igual el valor nativo para que la diferencia
-        # quede declarada en el informe.
+        # CO2 is recomputed from the energy CodeCarbon measures by applying the most recent
+        # emission factor (see config): the library converts internally with its
+        # dataset frozen in 2023. The native value is kept anyway so the difference
+        # is stated in the report.
         factor = config.FACTOR_EMISION_AR * config.PUE
         return {
             "tiempo_s": max(tiempo_s, 1e-9) / lote,
@@ -161,10 +161,10 @@ class MedidorCodeCarbon:
         }
 
 
-# Modos en los que CodeCarbon lee la potencia de un contador del hardware, en lugar de
-# calcularla. Es la propia lista de la librería (`external/hardware.py`, `CPU.start`):
-# Intel RAPL en Linux, Intel Power Gadget y el Energy Meter Interface en Windows, y
-# powermetrics en Apple Silicon. Cualquier otro modo (`cpu_load`, `constant`) es estimación.
+# Modes in which CodeCarbon reads power from a hardware counter instead of
+# computing it. It is the library's own list (`external/hardware.py`, `CPU.start`):
+# Intel RAPL on Linux, Intel Power Gadget and the Energy Meter Interface on Windows, and
+# powermetrics on Apple Silicon. Any other mode (`cpu_load`, `constant`) is an estimate.
 MODOS_LECTURA_DIRECTA = (
     "intel_rapl",
     "intel_power_gadget",
@@ -174,7 +174,7 @@ MODOS_LECTURA_DIRECTA = (
 
 
 def modo_activo(tracker: Any) -> str | None:
-    """Modo con el que quedó configurada la medición de potencia del CPU."""
+    """Mode the CPU power measurement ended up configured with."""
     for hardware in getattr(tracker, "_hardware", []):
         nombre = type(hardware).__name__
         if nombre == "AppleSiliconChip":
@@ -186,25 +186,25 @@ def modo_activo(tracker: Any) -> str | None:
 
 def preferir_lectura_directa(tracker: Any) -> dict[str, Any]:
     """
-    Garantiza la regla del trabajo: si la potencia se puede leer del hardware, se lee; si
-    no, se estima.
+    Enforce the project rule: if power can be read from the hardware, it is read; if
+    not, it is estimated.
 
-    En la mayoría de las plataformas CodeCarbon ya hace eso —prueba Intel RAPL en Linux y el
-    Energy Meter Interface en Windows antes de caer a su estimación—, así que acá no hay nada
-    que corregir y la función no toca nada.
+    On most platforms CodeCarbon already does this —it tries Intel RAPL on Linux and the
+    Energy Meter Interface on Windows before falling back to its estimate—, so there is nothing
+    to correct here and the function changes nothing.
 
-    La excepción es Apple Silicon: ahí la librería prueba primero su modo estimado
-    `cpu_load` y ese intento nunca falla, porque devuelve True con sólo tener `psutil`, que
-    es dependencia obligatoria suya. Su rama de `powermetrics` queda entonces inalcanzable
-    aunque el equipo la permita (`core/resource_tracker.py`,
-    `_try_platform_cpu_backend`). Sólo en ese caso se reemplaza el medidor estimado por el
-    real.
+    The exception is Apple Silicon: there the library first tries its estimated mode
+    `cpu_load`, and that attempt never fails, because it returns True just by having `psutil`, which
+    is one of its mandatory dependencies. Its `powermetrics` branch is therefore unreachable
+    even when the machine allows it (`core/resource_tracker.py`,
+    `_try_platform_cpu_backend`). Only in that case is the estimated meter replaced by the
+    real one.
 
-    Se reemplaza únicamente el medidor de CPU: el de RAM se deja como está y el chip gráfico
-    no se agrega, porque está ocioso en estas cargas y su potencia no es atribuible a los
-    algoritmos medidos.
+    Only the CPU meter is replaced: the RAM meter is left as is and the GPU
+    is not added, because it is idle in these workloads and its power is not attributable to the
+    measured algorithms.
 
-    Devuelve qué quedó activo, para que el informe lo declare en lugar de suponerlo.
+    Returns what ended up active, so the report states it instead of assuming it.
     """
     modo = modo_activo(tracker)
     if modo in MODOS_LECTURA_DIRECTA:
@@ -228,14 +228,14 @@ def preferir_lectura_directa(tracker: Any) -> dict[str, Any]:
     try:
         from codecarbon.core import powermetrics
         from codecarbon.external.hardware import AppleSiliconChip
-    except Exception as error:  # noqa: BLE001 - diagnóstico, no debe romper la corrida
-        return estimando(f"no se pudo consultar la lectura directa: {error}")
+    except Exception as error:  # noqa: BLE001 - diagnostics, must not break the run
+        return estimando(f"could not query direct reading: {error}")
 
     if not powermetrics.is_powermetrics_available():
         return estimando(
-            "este equipo no ofrece ninguna lectura directa de potencia que CodeCarbon "
-            "sepa usar (en Linux sería Intel RAPL, en Windows el Energy Meter Interface, "
-            "y en Apple Silicon powermetrics con privilegios de root)"
+            "this machine offers no direct power reading that CodeCarbon "
+            "knows how to use (on Linux it would be Intel RAPL, on Windows the Energy Meter Interface, "
+            "and on Apple Silicon powermetrics with root privileges)"
         )
 
     try:
@@ -245,8 +245,8 @@ def preferir_lectura_directa(tracker: Any) -> dict[str, Any]:
             hardware.remove(estimado)
         hardware.append(chip)
         tracker._conf["cpu_model"] = chip.get_model()
-    except Exception as error:  # noqa: BLE001 - si falla el reemplazo, sigue la estimación
-        return estimando(f"powermetrics falló al inicializarse: {error}")
+    except Exception as error:  # noqa: BLE001 - if the replacement fails, estimation continues
+        return estimando(f"powermetrics failed to initialize: {error}")
 
     return {
         "lectura_directa": True,
@@ -259,21 +259,21 @@ def preferir_lectura_directa(tracker: Any) -> dict[str, Any]:
 
 def modo_de_medicion_cpu(tracker: Any) -> dict[str, Any]:
     """
-    Informa cómo está midiendo CodeCarbon la potencia del CPU en esta corrida.
+    Report how CodeCarbon is measuring CPU power in this run.
 
-    En Apple Silicon la librería usa `powermetrics` si puede correrlo con privilegios de
-    root y, si no, cae al modo `cpu_load`, que estima a partir de un TDP genérico. El
-    informe necesita saber cuál de los dos caminos se tomó para no afirmar algo falso, así
-    que se lee del objeto de hardware del tracker en lugar de suponerlo.
+    On Apple Silicon the library uses `powermetrics` if it can run it with root
+    privileges and, if not, falls back to `cpu_load` mode, which estimates from a generic TDP. The
+    report needs to know which of the two paths was taken so as not to claim something false, so
+    it is read from the tracker's hardware object instead of being assumed.
     """
-    # ¿Estaba powermetrics disponible para la librería? Se consulta a la propia CodeCarbon
-    # para poder distinguir en el informe entre dos causas muy distintas de que use un
-    # modelo aproximado: que no tenga permisos, o que teniéndolos no lo use igual.
+    # Was powermetrics available to the library? CodeCarbon itself is queried
+    # so the report can distinguish between two very different reasons for using an
+    # approximate model: lacking permissions, or having them and still not using it.
     try:
         from codecarbon.core import powermetrics
 
         powermetrics_disponible = bool(powermetrics.is_powermetrics_available())
-    except Exception:  # noqa: BLE001 - es información de diagnóstico, no debe romper la corrida
+    except Exception:  # noqa: BLE001 - it is diagnostic information, must not break the run
         powermetrics_disponible = None
 
     for hardware in getattr(tracker, "_hardware", []):
@@ -301,12 +301,12 @@ def modo_de_medicion_cpu(tracker: Any) -> dict[str, Any]:
 
 def tdp_de_referencia(modelo_cpu: str) -> dict[str, Any]:
     """
-    Busca el TDP del CPU en la tabla de referencia de CodeCarbon.
+    Look up the CPU TDP in CodeCarbon's reference table.
 
-    El informe afirma que este equipo no figura en esa tabla y que por eso la librería
-    aplica su constante por defecto. La afirmación se verifica acá en tiempo de ejecución
-    en lugar de quedar escrita a mano: se devuelve si el modelo está en el CSV, el TDP
-    encontrado y el valor de `POWER_CONSTANT` que la librería usa como reemplazo.
+    The report states that this machine is not in that table and that the library therefore
+    applies its default constant. The claim is verified here at runtime
+    instead of being written by hand: it returns whether the model is in the CSV, the TDP
+    found and the value of `POWER_CONSTANT` the library uses as a replacement.
     """
     from codecarbon.external.hardware import POWER_CONSTANT
 
@@ -314,7 +314,7 @@ def tdp_de_referencia(modelo_cpu: str) -> dict[str, Any]:
     tdp: float | None = None
     if ruta.is_file():
         with ruta.open(encoding="utf-8") as archivo:
-            next(archivo, None)  # encabezado
+            next(archivo, None)  # header
             for linea in archivo:
                 nombre, _, potencia = linea.rpartition(",")
                 if nombre.strip().lower() == modelo_cpu.strip().lower():

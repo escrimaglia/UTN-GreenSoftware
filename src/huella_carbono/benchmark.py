@@ -1,17 +1,17 @@
-# Calcular la huella de carbono de los algoritmos de Python
+# Compute the carbon footprint of Python algorithms
 # By Ed Scrimaglia
 
 """
-Orquestación del benchmark.
+Benchmark orchestration.
 
-Para cada (experimento, algoritmo, n):
+For each (experiment, algorithm, n):
 
-  1. Se valida que todas las variantes del experimento den el mismo resultado.
-  2. Se hace una corrida de sondeo que sirve de warm-up y fija el tamaño del lote.
-  3. Se repiten R mediciones del lote con CodeCarbon, cronometrando el mismo trabajo
-     que la herramienta está midiendo.
-  4. Se vuelca cada repetición a `resultados/simulacion_huella_carbono.csv`, el único
-     CSV del proyecto. El agregado (media y desvío estándar) se deriva en memoria.
+  1. Validate that all variants of the experiment give the same result.
+  2. Do a probe run that serves as warm-up and sets the batch size.
+  3. Repeat R measurements of the batch with CodeCarbon, timing the same work
+     the tool is measuring.
+  4. Write each repetition to `resultados/simulacion_huella_carbono.csv`, the only
+     CSV of the project. The aggregate (mean and standard deviation) is derived in memory.
 """
 
 from __future__ import annotations
@@ -33,29 +33,29 @@ from huella_carbono.medidor import MedidorCodeCarbon, calcular_lote
 
 
 def metadatos_entorno() -> dict[str, Any]:
-    """Contexto de hardware y software, para que el experimento sea reproducible."""
+    """Hardware and software context, so that the experiment is reproducible."""
     import codecarbon
     import numpy
 
     from huella_carbono import algoritmos
 
-    # La versión de scikit-learn se lee de los metadatos del paquete instalado en lugar de
-    # importarlo: importar sklearn cuesta ~1,5 s y no hace falta si el experimento de ML no
-    # corrió en esta invocación.
+    # The scikit-learn version is read from the installed package metadata instead of
+    # importing it: importing sklearn takes ~1.5 s and is unnecessary if the ML experiment did
+    # not run in this invocation.
     sklearn_version = importlib.metadata.version("scikit-learn")
 
-    # La accuracy del modelo sólo existe si el experimento de ML se ejecutó (la carga de su
-    # módulo es perezosa, así que `MODULO_ML` sigue en None si no corrió).
+    # The model accuracy only exists if the ML experiment ran (its module is loaded
+    # lazily, so `MODULO_ML` stays None if it did not run).
     calidad_knn = (
         {str(n): valor for n, valor in sorted(algoritmos.MODULO_ML.CALIDAD.items())}
         if algoritmos.MODULO_ML is not None
         else {}
     )
 
-    # Backend de BLAS y cuántos hilos usa: es el dato que explica por qué `knn_brute` es
-    # multihilo, y sin él el experimento de ML no sería reproducible en otra máquina.
-    # `threadpool_info()` sólo informa bibliotecas ya cargadas, y esta función corre después
-    # de medir, así que ve el backend real de la corrida.
+    # BLAS backend and how many threads it uses: this is what explains why `knn_brute` is
+    # multithreaded, and without it the ML experiment would not be reproducible on another machine.
+    # `threadpool_info()` only reports libraries already loaded, and this function runs after
+    # measuring, so it sees the actual backend of the run.
     try:
         from threadpoolctl import threadpool_info
 
@@ -67,7 +67,7 @@ def metadatos_entorno() -> dict[str, Any]:
             }
             for info in threadpool_info()
         ]
-    except Exception:  # noqa: BLE001 - la información es opcional, nunca debe romper la corrida
+    except Exception:  # noqa: BLE001 - the information is optional, it must never break the run
         hilos_blas = []
 
     return {
@@ -91,9 +91,9 @@ def metadatos_entorno() -> dict[str, Any]:
         "semilla": config.SEMILLA,
         "calidad_knn": calidad_knn,
         "hilos_blas": hilos_blas,
-        # Hilos de BLAS: no se fijan a propósito, para medir el comportamiento real por
-        # defecto (es lo que hace que `knn_brute` sea multihilo). Se registra si el entorno
-        # los limitaba, porque cambiaría por completo el resultado del experimento de ML.
+        # BLAS threads: deliberately not pinned, to measure the actual default
+        # behavior (it is what makes `knn_brute` multithreaded). Whether the environment
+        # limited them is recorded, because it would completely change the ML experiment result.
         "limite_hilos_entorno": {
             var: os.environ[var]
             for var in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS", "VECLIB_MAXIMUM_THREADS")
@@ -107,26 +107,26 @@ def ejecutar(
     rapido: bool = False,
     repeticiones: int = config.REPETICIONES,
 ) -> pd.DataFrame:
-    """Corre el benchmark completo y devuelve el DataFrame de mediciones crudas."""
+    """Run the full benchmark and return the DataFrame of raw measurements."""
     claves = claves or list(EXPERIMENTOS)
     config.DIR_RESULTADOS.mkdir(parents=True, exist_ok=True)
 
     filas: list[dict[str, Any]] = []
 
     with MedidorCodeCarbon() as codecarbon_medidor:
-        # La ventana de medición la fija el camino que quedó activo: leer la potencia del
-        # hardware exige que el muestreo caiga dentro del trabajo, estimarla no.
+        # The measurement window is set by the active path: reading power from the
+        # hardware requires sampling to fall within the work, estimating it does not.
         lectura = codecarbon_medidor.lectura
         ventana = (
             config.DURACION_MINIMA_LOTE_MUESTREO_S
             if lectura.get("requiere_ventana_muestreo")
             else config.DURACION_MINIMA_LOTE_S
         )
-        fuente = lectura.get("fuente_potencia") or "desconocida"
+        fuente = lectura.get("fuente_potencia") or "unknown"
         print(
-            f"  potencia del CPU: "
-            f"{'lectura directa' if lectura.get('lectura_directa') else 'estimada'}"
-            f" ({fuente})  |  ventana de medición >= {ventana:.1f} s\n"
+            f"  CPU power: "
+            f"{'direct reading' if lectura.get('lectura_directa') else 'estimated'}"
+            f" ({fuente})  |  measurement window >= {ventana:.1f} s\n"
         )
         for clave in claves:
             exp = EXPERIMENTOS[clave]
@@ -165,15 +165,15 @@ def ejecutar(
                     ult = filas[-1]
                     print(
                         f"  n={n:<6} {nombre:<16} {exp.variantes[nombre]:<16} "
-                        f"lote={lote:<6} t={ult['tiempo_s']:.3e}s  "
+                        f"batch={lote:<6} t={ult['tiempo_s']:.3e}s  "
                         f"CO2={ult['co2_kg']:.3e} kg"
                     )
             print()
 
         metadatos = metadatos_entorno()
         metadatos["codecarbon_deteccion"] = codecarbon_medidor.metadatos
-        # La ventana efectiva depende de la fuente de potencia que quedó activa, así que se
-        # registra: el informe la declara en lugar de suponer el valor por defecto.
+        # The effective window depends on the power source that ended up active, so it is
+        # recorded: the report states it instead of assuming the default value.
         metadatos["ventana_medicion_s"] = ventana
 
     df = pd.DataFrame(filas)
@@ -182,13 +182,13 @@ def ejecutar(
         json.dumps(metadatos, indent=2, ensure_ascii=False), encoding="utf-8"
     )
 
-    print(f"Resultados -> {config.CSV_SIMULACION.relative_to(config.RAIZ)}")
-    print(f"Metadatos  -> resultados/metadatos.json")
+    print(f"Results  -> {config.CSV_SIMULACION.relative_to(config.RAIZ)}")
+    print(f"Metadata -> resultados/metadatos.json")
     return df
 
 
 def agregar(df: pd.DataFrame) -> pd.DataFrame:
-    """Media y desvío estándar de las R repeticiones de cada (algoritmo, n)."""
+    """Mean and standard deviation of the R repetitions of each (algorithm, n)."""
     columnas = [
         "tiempo_s",
         "tiempo_s_informado",
@@ -207,10 +207,10 @@ def agregar(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def cargar_resultados() -> tuple[pd.DataFrame, pd.DataFrame, dict[str, Any]]:
-    """Relee del disco lo producido por `ejecutar()`."""
+    """Reload from disk what `ejecutar()` produced."""
     if not config.CSV_SIMULACION.exists():
         raise FileNotFoundError(
-            f"No existe {config.CSV_SIMULACION}. Ejecutar primero el benchmark."
+            f"{config.CSV_SIMULACION} does not exist. Run the benchmark first."
         )
     df = pd.read_csv(config.CSV_SIMULACION)
     resumen = agregar(df)

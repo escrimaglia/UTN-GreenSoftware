@@ -1,12 +1,12 @@
 {
   "pais": "Argentina",
   "iso": "ARG",
-  "indicador": "Intensidad de carbono de ciclo de vida de la generación eléctrica",
+  "indicador": "Life-cycle carbon intensity of electricity generation",
   "unidad": "gCO2eq/kWh",
-  "fuente": "Ember (2026), Yearly Electricity Data — con procesamiento de Our World in Data",
+  "fuente": "Ember (2026), Yearly Electricity Data — with processing by Our World in Data",
   "url": "https://ourworldindata.org/grapher/carbon-intensity-electricity",
   "descargado": "2026-08-22",
-  "nota": "Serie completa tal como la publica Our World in Data para Argentina. El proyecto usa automáticamente el año más reciente disponible. Para actualizarla, volver a descargar el CSV del grapher y regenerar este archivo.",
+  "nota": "Full series as published by Our World in Data for Argentina. The project automatically uses the most recent year available. To update it, download the grapher CSV again and regenerate this file.",
   "serie_g_kwh": {
     "2000": 355.47,
     "2001": 302.09,
@@ -36,15 +36,15 @@
     "2025": 346.0
   },
   "referencia_factor_oficial": {
-    "organismo": "Secretaría de Energía de la Nación (Argentina)",
-    "indicador": "Factor de emisión de CO2 de la red — margen combinado (w_OM = 0,75; w_BM = 0,25)",
+    "organismo": "Secretaría de Energía de la Nación (Argentina's national Energy Secretariat)",
+    "indicador": "Grid CO2 emission factor — combined margin (w_OM = 0.75; w_BM = 0.25)",
     "metodologia": "UNFCCC, Tool to calculate the emission factor for an electricity system, v7",
     "anio": 2023,
     "valor_g_kwh": 343.5,
     "url": "http://datos.energia.gob.ar/dataset/calculo-del-factor-de-emision-de-co2-de-la-red-argentina-de-energia-electrica",
     "archivo": "factor_de_emision_2013_a_2023.xlsx",
     "descargado": "2026-08-22",
-    "nota": "Se cita como contraste, no se usa en los cálculos: es un factor marginal para evaluación de proyectos, no una intensidad media de la red. Último año publicado por el organismo al momento de la descarga."
+    "nota": "Cited as a contrast, not used in the calculations: it is a marginal factor for project evaluation, not an average grid intensity. Latest year published by the agency at the time of download."
   },
   "url_fuente_upstream": "https://ember-energy.org/data/yearly-electricity-data/"
 }

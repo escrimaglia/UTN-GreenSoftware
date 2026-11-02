@@ -1,12 +1,12 @@
-# Calcular la huella de carbono de los algoritmos de Python
+# Calculating the carbon footprint of Python algorithms
 # By Ed Scrimaglia
 
 """
-Parámetros del modelo energético y de emisiones.
+Energy and emissions model parameters.
 
-Todo número usado por el proyecto vive acá, con su fuente y su justificación.
-El objetivo es que el modelo sea auditable: no hay constantes mágicas escondidas
-dentro de la lógica de medición.
+Every number the project uses lives here, together with its source and its rationale.
+The goal is an auditable model: no magic constants hidden inside the measurement
+logic.
 """
 
 from __future__ import annotations
@@ -18,35 +18,35 @@ from pathlib import Path
 from typing import Any
 
 # --------------------------------------------------------------------------------------
-# Rutas del proyecto
+# Project paths
 # --------------------------------------------------------------------------------------
 
 RAIZ = Path(__file__).resolve().parents[2]
 DIR_RESULTADOS = RAIZ / "resultados"
 DIR_GRAFICOS = DIR_RESULTADOS / "graficos"
-# Un único CSV de resultados: es el entregable de la simulación. Contiene una fila por
-# repetición medida, que es el grano más fino; las medias y desvíos que usa el informe se
-# derivan de acá en memoria, para no versionar dos veces la misma información.
+# A single results CSV: it is the deliverable of the simulation. It holds one row per
+# measured repetition, which is the finest grain; the means and deviations used by the
+# report are derived from it in memory, so the same information is not versioned twice.
 CSV_SIMULACION = DIR_RESULTADOS / "simulacion_huella_carbono.csv"
 INFORME = RAIZ / "INFORME.md"
 
 
 # --------------------------------------------------------------------------------------
-# Factor de emisión de la red eléctrica
+# Power grid emission factor
 # --------------------------------------------------------------------------------------
 
-# Intensidad de carbono de la red eléctrica argentina, en kgCO2eq por kWh.
+# Carbon intensity of the Argentine power grid, in kgCO2eq per kWh.
 #
-# Se usa el dato MÁS RECIENTE disponible para Argentina. Ningún valor está escrito a
-# mano: se lee en tiempo de ejecución de `datos/intensidad_carbono_argentina.json`, que
-# versiona la serie completa publicada por Our World in Data a partir de los datos
-# anuales de Ember, y se toma automáticamente el último año de la serie.
+# The MOST RECENT figure available for Argentina is used. No value is hard-coded: it is
+# read at run time from `datos/intensidad_carbono_argentina.json`, which versions the
+# full series published by Our World in Data from Ember's yearly data, and the latest
+# year of the series is picked automatically.
 #
-# Por qué no se usa el valor interno de CodeCarbon: su dataset
-# (`codecarbon/data/private_infra/global_energy_mix.json`) está congelado en 2023 para
-# Argentina (354,103 gCO2eq/kWh) incluso en la última versión publicada de la librería.
-# Ese valor se sigue leyendo acá, pero sólo como referencia para el informe y para poder
-# declarar explícitamente la diferencia.
+# Why CodeCarbon's built-in value is not used: its dataset
+# (`codecarbon/data/private_infra/global_energy_mix.json`) is frozen at 2023 for
+# Argentina (354.103 gCO2eq/kWh) even in the latest published version of the library.
+# That value is still read here, but only as a reference for the report and to state
+# the difference explicitly.
 
 PAIS_ISO = "ARG"
 DIR_DATOS = RAIZ / "datos"
@@ -54,61 +54,61 @@ ARCHIVO_INTENSIDAD_CARBONO = DIR_DATOS / "intensidad_carbono_argentina.json"
 
 
 def cargar_serie_intensidad_carbono() -> dict[str, Any]:
-    """Lee la serie de intensidad de carbono de la red argentina versionada en el repo."""
+    """Read the Argentine grid carbon intensity series versioned in the repo."""
     if not ARCHIVO_INTENSIDAD_CARBONO.is_file():
         raise RuntimeError(
-            f"Falta el dataset de intensidad de carbono en {ARCHIVO_INTENSIDAD_CARBONO}. "
-            "Es un archivo versionado con el proyecto; no debería faltar."
+            f"The carbon intensity dataset is missing at {ARCHIVO_INTENSIDAD_CARBONO}. "
+            "It is a file versioned with the project; it should not be missing."
         )
     with ARCHIVO_INTENSIDAD_CARBONO.open(encoding="utf-8") as archivo:
         datos = json.load(archivo)
     if not datos.get("serie_g_kwh"):
         raise RuntimeError(
-            f"{ARCHIVO_INTENSIDAD_CARBONO.name} no tiene la clave 'serie_g_kwh' con datos."
+            f"{ARCHIVO_INTENSIDAD_CARBONO.name} has no 'serie_g_kwh' key with data."
         )
     return datos
 
 
 def factor_emision_mas_reciente(serie: dict[str, float]) -> tuple[int, float]:
-    """Devuelve (año, gCO2eq/kWh) del año más reciente de la serie."""
+    """Return (year, gCO2eq/kWh) for the most recent year in the series."""
     anio = max(int(a) for a in serie)
     return anio, float(serie[str(anio)])
 
 
 def ruta_dataset_emisiones() -> Path:
     """
-    Ubica el JSON de matrices eléctricas dentro del paquete `codecarbon` instalado.
+    Locate the electricity mix JSON inside the installed `codecarbon` package.
 
-    Se resuelve con `find_spec` en lugar de `import codecarbon` porque importar el
-    paquete completo es costoso (arrastra sus dependencias) y acá sólo se necesita
-    la ruta de un archivo de datos.
+    It is resolved with `find_spec` instead of `import codecarbon` because importing the
+    whole package is expensive (it pulls in its dependencies) and only the path of a
+    data file is needed here.
     """
     spec = find_spec("codecarbon")
     if spec is None or not spec.submodule_search_locations:
         raise RuntimeError(
-            "No se encuentra el paquete `codecarbon` en el entorno. "
-            "Instalar las dependencias del proyecto (`uv sync`)."
+            "The `codecarbon` package cannot be found in the environment. "
+            "Install the project dependencies (`uv sync`)."
         )
     raiz_paquete = Path(next(iter(spec.submodule_search_locations)))
     return raiz_paquete / "data" / "private_infra" / "global_energy_mix.json"
 
 
 def cargar_matriz_electrica(iso: str = PAIS_ISO) -> dict[str, Any]:
-    """Devuelve el registro de matriz eléctrica de un país tal como lo trae CodeCarbon."""
+    """Return a country's electricity mix record as shipped by CodeCarbon."""
     ruta = ruta_dataset_emisiones()
     if not ruta.is_file():
         raise RuntimeError(
-            f"El dataset de matrices eléctricas de CodeCarbon no está en {ruta}. "
-            "Puede haber cambiado de ubicación en esta versión de CodeCarbon."
+            f"CodeCarbon's electricity mix dataset is not at {ruta}. "
+            "Its location may have changed in this version of CodeCarbon."
         )
     with ruta.open(encoding="utf-8") as archivo:
         datos = json.load(archivo)
     if iso not in datos:
-        raise KeyError(f"El dataset de CodeCarbon no tiene la clave de país '{iso}'.")
+        raise KeyError(f"CodeCarbon's dataset has no country key '{iso}'.")
     return datos[iso]
 
 
-# --- factor de emisión efectivamente usado en todos los cálculos del proyecto ---
+# --- emission factor actually used in every calculation of the project ---
 INTENSIDAD_CARBONO = cargar_serie_intensidad_carbono()
 ANIO_FACTOR_EMISION, FACTOR_EMISION_AR_G_KWH = factor_emision_mas_reciente(
     INTENSIDAD_CARBONO["serie_g_kwh"]
@@ -116,20 +116,20 @@ ANIO_FACTOR_EMISION, FACTOR_EMISION_AR_G_KWH = factor_emision_mas_reciente(
 FACTOR_EMISION_AR = FACTOR_EMISION_AR_G_KWH / 1000.0  # kgCO2eq/kWh
 FUENTE_FACTOR_EMISION = INTENSIDAD_CARBONO["fuente"]
 
-# Factor oficial de la Secretaría de Energía, citado en el informe sólo como contraste
-# metodológico (es un factor marginal estilo UNFCCC, no una intensidad media de la red).
-# Vive en el mismo archivo de datos para que ninguna cifra del informe esté escrita a mano.
+# Official factor from Argentina's Energy Secretariat, cited in the report only as a
+# methodological contrast (it is a UNFCCC-style marginal factor, not an average grid
+# intensity). It lives in the same data file so that no figure in the report is hard-coded.
 REFERENCIA_FACTOR_OFICIAL = INTENSIDAD_CARBONO.get("referencia_factor_oficial", {})
 
-# --- valor interno de CodeCarbon, sólo como referencia y contraste en el informe ---
+# --- CodeCarbon's built-in value, only as a reference and contrast in the report ---
 REGISTRO_PAIS = cargar_matriz_electrica()
 FACTOR_EMISION_CODECARBON_G_KWH = float(REGISTRO_PAIS["carbon_intensity"])
 ANIO_FACTOR_EMISION_CODECARBON = int(REGISTRO_PAIS["year"])
 
-# Contexto de la matriz eléctrica argentina (registro de CodeCarbon), usado en el marco
-# teórico del informe. El año es el que declara el propio dataset, no una suposición: es
-# el último año con desglose por fuente disponible, y puede ser anterior al año del
-# factor de emisión usado en los cálculos.
+# Context on the Argentine electricity mix (CodeCarbon record), used in the theoretical
+# background of the report. The year is the one the dataset itself declares, not an
+# assumption: it is the latest year with a by-source breakdown available, and it may be
+# earlier than the year of the emission factor used in the calculations.
 MATRIZ_AR = {
     "anio": ANIO_FACTOR_EMISION_CODECARBON,
     "total_TWh": float(REGISTRO_PAIS["total_TWh"]),
@@ -145,61 +145,61 @@ MATRIZ_AR = {
 }
 
 
-# PUE (Power Usage Effectiveness): factor que en un datacenter contabiliza la energía
-# de refrigeración e infraestructura además de la del cómputo.
-# Acá el experimento corre en una notebook sobre un escritorio, sin infraestructura de
-# refrigeración externa, por lo que PUE = 1.0. Se deja explícito porque si el mismo
-# código corriera en un datacenter habría que multiplicar por 1.1 - 1.6.
+# PUE (Power Usage Effectiveness): the factor that, in a datacenter, accounts for the
+# energy spent on cooling and infrastructure in addition to that of the computation.
+# Here the experiment runs on a laptop on a desk, with no external cooling
+# infrastructure, so PUE = 1.0. It is kept explicit because if the same code ran in a
+# datacenter it would have to be multiplied by 1.1 - 1.6.
 PUE = 1.0
 
 
 # --------------------------------------------------------------------------------------
-# Modelo de potencia del hardware
+# Hardware power model
 # --------------------------------------------------------------------------------------
 
 
-# El modelo de potencia propio se describe en el informe (secc 3.3) como una opción de
-# cálculo, pero el proyecto no lo implementa: la medición es de CodeCarbon.
+# A custom power model is described in the report (section 3.3) as a calculation option,
+# but the project does not implement it: measurement is done by CodeCarbon.
 
 
 # --------------------------------------------------------------------------------------
-# Parámetros del benchmark
+# Benchmark parameters
 # --------------------------------------------------------------------------------------
 
-SEMILLA = 42  # semilla fija: todos los algoritmos reciben exactamente la misma entrada
-REPETICIONES = 3  # cada (algoritmo, n) se corre R veces -> media y desvío estándar
+SEMILLA = 42  # fixed seed: every algorithm receives exactly the same input
+REPETICIONES = 3  # each (algorithm, n) is run R times -> mean and standard deviation
 
-# Medición por lotes.
+# Batch measurement.
 #
-# Los algoritmos eficientes son tan rápidos que una sola ejecución cae por debajo de la
-# resolución de las herramientas de medición: `psutil.cpu_times()` tiene granularidad del
-# orden de los 10 ms en macOS y `timsort_nativo` sobre n=1000 tarda ~1 ms. Medir eso
-# directamente daría utilizaciones de 0 o de 1 según el redondeo, no un dato.
+# Efficient algorithms are so fast that a single run falls below the resolution of the
+# measurement tools: `psutil.cpu_times()` has a granularity on the order of 10 ms on
+# macOS, and `timsort_nativo` on n=1000 takes ~1 ms. Measuring that directly would yield
+# utilizations of 0 or 1 depending on rounding, not a data point.
 #
-# Solución estándar (la misma que usa el módulo `timeit` de la biblioteca estándar):
-# ejecutar el algoritmo K veces dentro de la región medida, con K autoajustado para que
-# el lote dure al menos DURACION_MINIMA_LOTE_S, y luego dividir por K. Así toda medición
-# se toma sobre una ventana temporal suficientemente grande.
+# Standard solution (the same one used by the standard library's `timeit` module): run
+# the algorithm K times inside the measured region, with K auto-tuned so that the batch
+# lasts at least DURACION_MINIMA_LOTE_S, and then divide by K. That way every measurement
+# is taken over a sufficiently large time window.
 DURACION_MINIMA_LOTE_S = 0.5
-# Cuando la potencia se LEE del hardware hace falta una ventana mucho más larga, porque el
-# muestreo tiene que caer DENTRO del trabajo. Medido en este equipo: la lectura agrega un
-# sobrecosto fijo de unos 1,95 s por medición (se toma al cerrar la tarea), así que el
-# inflado de la duración informada es 5,7x con ventanas de 0,4 s, 2,4x con 1,4 s y 1,65x
-# con 3 s. Se adoptan 3 s como compromiso entre exactitud y duración de la corrida.
+# When power is READ from the hardware, a much longer window is needed, because sampling
+# has to fall WITHIN the work. Measured on this machine: reading adds a fixed overhead of
+# about 1.95 s per measurement (taken when the task closes), so the reported duration is
+# inflated 5.7x with 0.4 s windows, 2.4x with 1.4 s and 1.65x with 3 s. 3 s is adopted
+# as a compromise between accuracy and run time.
 DURACION_MINIMA_LOTE_MUESTREO_S = 3.0
 
-# Tope de ejecuciones por lote. Es una red de seguridad contra un sondeo no representativo
-# (si la corrida de prueba midiera casi cero, K se iría al infinito), no un límite de
-# diseño: el tamaño del lote lo gobierna la ventana temporal. Tiene que dar holgura para
-# llegar a la ventana con los algoritmos más rápidos del proyecto: `fib_iterativo` corre en unos
-# 450 ns, así que necesita del orden de 7 millones de ejecuciones para cubrir 3 s. Con un
-# tope bajo, justamente los algoritmos más eficientes de cada experimento medirían sobre
-# ventanas cortas y su energía saldría inflada respecto de la de sus alternativas, que es
-# el sesgo que arruinaría la comparación.
+# Cap on runs per batch. It is a safety net against an unrepresentative probe (if the
+# trial run measured almost zero, K would go to infinity), not a design limit: batch size
+# is governed by the time window. It has to leave enough headroom to reach the window with
+# the project's fastest algorithms: `fib_iterativo` runs in about 450 ns, so it needs on
+# the order of 7 million runs to cover 3 s. With a low cap, precisely the most efficient
+# algorithms in each experiment would be measured over short windows and their energy
+# would come out inflated relative to their alternatives, which is the bias that would
+# ruin the comparison.
 MAX_EJECUCIONES_LOTE = 10_000_000
 
-# Duración del lote de sondeo con el que se estima el tiempo por ejecución antes de fijar K.
-# 10 ms alcanzan para promediar el ruido del reloj y son despreciables frente a la ventana.
+# Duration of the probe batch used to estimate the time per run before fixing K.
+# 10 ms is enough to average out clock noise and is negligible compared to the window.
 DURACION_SONDEO_S = 0.01
 
 
@@ -212,67 +212,67 @@ class Experimento:
     tamanios_rapido: list[int]
     unidad_n: str = "n"
     notas: str = ""
-    variantes: dict[str, str] = field(default_factory=dict)  # algoritmo -> complejidad
-    # Qué hace cada variante, en lenguaje llano y en tres líneas como máximo: el informe lo
-    # inserta antes del gráfico de cada experimento, para que se entienda qué se comparó.
+    variantes: dict[str, str] = field(default_factory=dict)  # algorithm -> complexity
+    # What each variant does, in plain language and in three lines at most: the report
+    # inserts it before each experiment's chart, so it is clear what was compared.
     descripciones: dict[str, str] = field(default_factory=dict)
-    # Escalas con las que secc 5.3 extrapola las emisiones de este experimento. El default
-    # (un millón y mil millones de ejecuciones) tiene sentido para una función invocada por
-    # un servicio; para un entrenamiento de modelo no, y cada experimento puede declarar las
-    # suyas: lista de (multiplicador, descripción).
+    # Scales that section 5.3 uses to extrapolate this experiment's emissions. The default
+    # (one million and one billion runs) makes sense for a function called by a service;
+    # not for a model training, so each experiment can declare its own: a list of
+    # (multiplier, description).
     escalas: list[tuple[int, str]] | None = None
 
 
 EXPERIMENTOS: dict[str, Experimento] = {
     "ordenamiento": Experimento(
         clave="ordenamiento",
-        titulo="Algoritmos de ordenamiento",
+        titulo="Sorting algorithms",
         pregunta=(
-            "¿La complejidad computacional se traduce en una diferencia medible de "
-            "emisiones cuando el resultado producido es idéntico?"
+            "Does computational complexity translate into a measurable difference in "
+            "emissions when the output produced is identical?"
         ),
         tamanios_completo=[1000, 2000, 4000, 8000],
         tamanios_rapido=[500, 1000],
-        unidad_n="cantidad de elementos",
+        unidad_n="number of elements",
         notas=(
-            "Las tres variantes ordenan exactamente la misma lista de enteros "
-            "generada con semilla fija y devuelven el mismo resultado."
+            "All three variants sort exactly the same list of integers, generated "
+            "with a fixed seed, and return the same result."
         ),
         variantes={
             "bubble_sort": "O(n²)",
             "merge_sort": "O(n log n)",
-            "timsort_nativo": "O(n log n) en C",
+            "timsort_nativo": "O(n log n) in C",
         },
         descripciones={
             "bubble_sort": (
-                "Compara elementos vecinos y los intercambia si están desordenados, y "
-                "repite el recorrido hasta que no queda ningún intercambio por hacer. Es el "
-                "método más simple de escribir y el que más trabajo hace."
+                "Compares neighboring elements and swaps them if they are out of order, "
+                "repeating the pass until there is nothing left to swap. It is the "
+                "simplest method to write and the one that does the most work."
             ),
             "merge_sort": (
-                "Parte la lista en mitades hasta quedarse con elementos sueltos y después "
-                "las va uniendo de a pares, ya ordenadas. Escrito en Python."
+                "Splits the list in halves until only single elements remain, then merges "
+                "them back in pairs, already sorted. Written in Python."
             ),
             "timsort_nativo": (
-                "El ordenamiento que trae Python de fábrica, escrito en C. Usa la misma idea "
-                "de unir mitades ordenadas, pero además detecta y aprovecha los tramos que "
-                "ya venían en orden."
+                "Python's built-in sort, written in C. It uses the same idea of merging "
+                "sorted halves, but also detects and takes advantage of stretches that "
+                "were already in order."
             ),
         },
     ),
     "fibonacci": Experimento(
         clave="fibonacci",
-        titulo="Cálculo de Fibonacci",
+        titulo="Computing Fibonacci",
         pregunta=(
-            "¿Cuánto cuesta ambientalmente recalcular trabajo ya hecho? "
-            "Comparación entre crecimiento exponencial y lineal."
+            "What is the environmental cost of recomputing work already done? "
+            "A comparison between exponential and linear growth."
         ),
         tamanios_completo=[20, 25, 30, 32],
         tamanios_rapido=[18, 22],
-        unidad_n="término n de la sucesión",
+        unidad_n="term n of the sequence",
         notas=(
-            "Se acota en n=32 porque la variante recursiva ingenua crece de forma "
-            "exponencial y dominaría el tiempo total del benchmark."
+            "Capped at n=32 because the naive recursive variant grows "
+            "exponentially and would dominate the total benchmark time."
         ),
         variantes={
             "fib_recursivo": "O(φⁿ)",
@@ -281,130 +281,130 @@ EXPERIMENTOS: dict[str, Experimento] = {
         },
         descripciones={
             "fib_recursivo": (
-                "Para obtener un término suma los dos anteriores, y para cada uno de ellos "
-                "vuelve a empezar de cero, sin recordar nada. Termina recalculando los "
-                "mismos valores una cantidad enorme de veces."
+                "To get a term it adds the two previous ones, and for each of them it "
+                "starts over from scratch, remembering nothing. It ends up recomputing "
+                "the same values an enormous number of times."
             ),
             "fib_memoizado": (
-                "Hace lo mismo, pero anota cada resultado la primera vez que lo calcula y "
-                "después lo reutiliza en lugar de volver a calcularlo."
+                "Does the same, but records each result the first time it computes it "
+                "and then reuses it instead of computing it again."
             ),
             "fib_iterativo": (
-                "Recorre la sucesión una sola vez, de abajo hacia arriba, guardando "
-                "únicamente los dos últimos valores."
+                "Walks through the sequence just once, from the bottom up, keeping "
+                "only the last two values."
             ),
         },
     ),
     "matrices": Experimento(
         clave="matrices",
-        titulo="Multiplicación de matrices",
+        titulo="Matrix multiplication",
         pregunta=(
-            "A igual complejidad algorítmica O(n³), ¿cuánto pesa ambientalmente la "
-            "elección de la implementación (Python puro contra una biblioteca numérica optimizada)?"
+            "With the same O(n³) algorithmic complexity, how much does the choice of "
+            "implementation (pure Python versus an optimized numerical library) weigh "
+            "environmentally?"
         ),
         tamanios_completo=[100, 200, 300],
         tamanios_rapido=[60, 100],
-        unidad_n="dimensión n de la matriz n×n",
+        unidad_n="dimension n of the n×n matrix",
         notas=(
-            "Ambas variantes resuelven el mismo producto con la misma complejidad "
-            "asintótica. La diferencia de huella es puro costo de implementación."
+            "Both variants compute the same product with the same asymptotic "
+            "complexity. The difference in footprint is purely the cost of implementation."
         ),
         variantes={
-            "matmul_python": "O(n³) en Python",
-            "matmul_numpy": "O(n³) vectorizado",
+            "matmul_python": "O(n³) in Python",
+            "matmul_numpy": "O(n³) vectorized",
         },
         descripciones={
             "matmul_python": (
-                "Multiplica las matrices elemento por elemento, con tres bucles anidados "
-                "escritos en Python. Cada operación pasa por el intérprete."
+                "Multiplies the matrices element by element, with three nested loops "
+                "written in Python. Every operation goes through the interpreter."
             ),
             "matmul_numpy": (
-                "Delega la misma multiplicación a una biblioteca numérica compilada, que "
-                "opera sobre bloques de datos a la vez en lugar de número por número."
+                "Hands the same multiplication to a compiled numerical library, which "
+                "operates on blocks of data at once instead of number by number."
             ),
         },
     ),
     "aprendizaje_knn": Experimento(
         clave="aprendizaje_knn",
-        titulo="Entrenamiento e inferencia de un modelo de ML (KNN)",
+        titulo="Training and inference of an ML model (KNN)",
         pregunta=(
-            "A igual resultado predictivo exacto, ¿cuánto cambia la huella según la "
-            "implementación de la búsqueda de vecinos, y qué pasa cuando una de ellas usa "
-            "todos los núcleos en lugar de uno?"
+            "With exactly the same predictive result, how much does the footprint change "
+            "depending on how the neighbor search is implemented, and what happens when one "
+            "of them uses all cores instead of one?"
         ),
         tamanios_completo=[2500, 5000, 10000, 20000],
         tamanios_rapido=[2000, 4000],
-        unidad_n="muestras del dataset",
+        unidad_n="dataset samples",
         notas=(
-            "El modelo es un clasificador de vecinos más cercanos, que no deduce ninguna "
-            "regla: para decidir a qué categoría pertenece un dato nuevo, busca los 31 datos "
-            "más parecidos entre los que ya conoce y le asigna la categoría que predomina "
-            "entre esos 31. «Parecido» quiere decir cercano, midiendo la distancia entre las "
-            "20 características que describen a cada dato.\n\n"
-            "Lo costoso es justamente encontrar esos 31 vecinos entre miles de datos, y es "
-            "ahí donde se diferencian las tres variantes. Se mide el entrenamiento y la "
-            "clasificación como una sola unidad de trabajo, y las tres devuelven exactamente "
-            "las mismas predicciones."
+            "The model is a nearest-neighbors classifier, which does not infer any rule: "
+            "to decide which category a new data point belongs to, it finds the 31 most "
+            "similar points among those it already knows and assigns it the category that "
+            "prevails among those 31. Here, similar means close, measuring the distance across "
+            "the 20 features that describe each data point.\n\n"
+            "The expensive part is precisely finding those 31 neighbors among thousands of "
+            "points, and that is where the three variants differ. Training and "
+            "classification are measured as a single unit of work, and all three return "
+            "exactly the same predictions."
         ),
         variantes={
-            "knn_brute": "O(n·m·d) vectorizado",
+            "knn_brute": "O(n·m·d) vectorized",
             "knn_kd_tree": "O(n·d) + O(n log n)",
             "knn_ball_tree": "O(n·d) + O(n log n)",
         },
         descripciones={
             "knn_brute": (
-                "Mide la distancia del dato nuevo contra todos los datos conocidos, uno por "
-                "uno, y se queda con los 31 más cercanos. No descarta nada, pero hace esas "
-                "cuentas de a bloques y reparte el trabajo entre todos los núcleos."
+                "Measures the distance from the new point to every known point, one by "
+                "one, and keeps the 31 closest. It discards nothing, but it does those "
+                "computations in blocks and spreads the work across all cores."
             ),
             "knn_kd_tree": (
-                "Antes de clasificar, acomoda los datos conocidos dividiendo el espacio con "
-                "cortes rectos, como una grilla irregular. Al buscar los vecinos descarta de "
-                "golpe las zonas que quedaron lejos, en lugar de recorrer dato por dato."
+                "Before classifying, it arranges the known points by splitting the space "
+                "with straight cuts, like an irregular grid. When searching for neighbors "
+                "it discards the far-away zones in one go, instead of going point by point."
             ),
             "knn_ball_tree": (
-                "Hace lo mismo que `knn_kd_tree` (descartar zonas enteras en vez de recorrer "
-                "todo), pero agrupando los datos conocidos en burbujas en lugar de cortarlos "
-                "con líneas rectas. Usa un solo núcleo."
+                "Does the same as `knn_kd_tree` (discarding whole zones instead of going "
+                "through everything), but groups the known points into bubbles instead of "
+                "cutting them with straight lines. Uses a single core."
             ),
         },
-        # El ajuste del informe se hace sobre CO2, no sobre tiempo, y para este experimento
-        # los dos no coinciden. El trabajo es O(n·m·d) con m = 0,2·n, o sea cuadrático en n
-        # para las tres variantes: la construcción O(n log n) de los árboles no domina porque
-        # en 20 dimensiones la consulta deja de podar (maldición de la dimensionalidad).
-        # `brute` reparte ese trabajo cuadrático entre todos los núcleos, así que su TIEMPO
-        # crece más despacio, pero la energía cuenta núcleo-segundos y su exponente de CO2
-        # vuelve a acercarse a 2.
+        # The report's fit is done on CO2, not on time, and for this experiment the two do
+        # not match. The work is O(n·m·d) with m = 0.2·n, i.e. quadratic in n for all three
+        # variants: the O(n log n) construction of the trees does not dominate because in
+        # 20 dimensions the query stops pruning (curse of dimensionality).
+        # `brute` spreads that quadratic work across all cores, so its TIME grows more
+        # slowly, but energy counts core-seconds and its CO2 exponent gets back close to 2.
         escalas=[
-            (365, "un reentrenamiento diario durante un año"),
-            (8_760, "un reentrenamiento por hora durante un año"),
+            (365, "one retraining per day for a year"),
+            (8_760, "one retraining per hour for a year"),
         ],
     ),
 }
 
 
 # --------------------------------------------------------------------------------------
-# Equivalencias para traducir kgCO2eq a magnitudes tangibles
+# Equivalences to translate kgCO2eq into tangible quantities
 # --------------------------------------------------------------------------------------
 
-# Se leen de `datos/equivalencias_co2.json` en tiempo de ejecución. Las equivalencias
-# eléctricas se guardan como CONSUMO en kWh y se convierten con FACTOR_EMISION_AR, para
-# que no puedan quedar desfasadas del factor de emisión vigente. Las directas guardan su
-# valor con la fuente y la URL de donde sale.
+# They are read from `datos/equivalencias_co2.json` at run time. Electrical equivalences
+# are stored as CONSUMPTION in kWh and converted with FACTOR_EMISION_AR, so they can never
+# drift out of sync with the current emission factor. Direct ones store their value along
+# with the source and the URL it comes from.
 
 ARCHIVO_EQUIVALENCIAS = DIR_DATOS / "equivalencias_co2.json"
 
 
 def cargar_equivalencias() -> tuple[list[tuple[str, float, str]], dict[str, Any]]:
     """
-    Devuelve las equivalencias como (nombre, kgCO2eq por unidad, fuente) y el crudo.
+    Return the equivalences as (name, kgCO2eq per unit, source) plus the raw data.
 
-    El crudo se devuelve además para que el informe pueda citar URLs y fechas de consulta.
+    The raw data is also returned so the report can cite URLs and access dates.
     """
     if not ARCHIVO_EQUIVALENCIAS.is_file():
         raise RuntimeError(
-            f"Falta el archivo de equivalencias en {ARCHIVO_EQUIVALENCIAS}. "
-            "Es un archivo versionado con el proyecto; no debería faltar."
+            f"The equivalences file is missing at {ARCHIVO_EQUIVALENCIAS}. "
+            "It is a file versioned with the project; it should not be missing."
         )
     with ARCHIVO_EQUIVALENCIAS.open(encoding="utf-8") as archivo:
         crudo = json.load(archivo)
@@ -413,25 +413,24 @@ def cargar_equivalencias() -> tuple[list[tuple[str, float, str]], dict[str, Any]
     for item in crudo.get("directas", []):
         lista.append((item["nombre"], float(item["kg_co2_por_unidad"]), item["fuente"]))
     for item in crudo.get("vehiculares", []):
-        # kgCO2/km = (L/100 km ÷ 100) × kgCO2/L. Los dos términos son datos argentinos.
+        # kgCO2/km = (L/100 km ÷ 100) × kgCO2/L. Both terms are Argentine data.
         consumo = float(item["consumo_l_por_100km"])
         factor_combustible = float(item["factor_kg_co2_por_litro"])
-        consumo_txt = f"{consumo:.1f}".replace(".", ",")
-        combustible_txt = f"{factor_combustible:.4f}".replace(".", ",")
+        consumo_txt = f"{consumo:.1f}"
+        combustible_txt = f"{factor_combustible:.4f}"
         fuente = (
-            f"{consumo_txt} L/100 km (consumo medio de vehículos livianos en Argentina) × "
+            f"{consumo_txt} L/100 km (average light-vehicle consumption in Argentina) × "
             f"{combustible_txt} kgCO₂/L ({item['combustible']})"
         )
         lista.append((item["nombre"], consumo / 100 * factor_combustible, fuente))
     for item in crudo.get("electricas", []):
         consumo = float(item["consumo_kwh"])
         detalle = item["detalle"]
-        # coma decimal, igual que el resto del informe
-        consumo_txt = f"{consumo:.3f}".replace(".", ",")
-        factor_txt = f"{FACTOR_EMISION_AR:.3f}".replace(".", ",")
+        consumo_txt = f"{consumo:.3f}"
+        factor_txt = f"{FACTOR_EMISION_AR:.3f}"
         fuente = (
             f"{detalle[:1].upper()}{detalle[1:]}: {consumo_txt} kWh × "
-            f"{factor_txt} kgCO₂eq/kWh (FE {ANIO_FACTOR_EMISION})"
+            f"{factor_txt} kgCO₂eq/kWh (EF {ANIO_FACTOR_EMISION})"
         )
         lista.append((item["nombre"], consumo * FACTOR_EMISION_AR, fuente))
     return lista, crudo
@@ -439,8 +438,8 @@ def cargar_equivalencias() -> tuple[list[tuple[str, float, str]], dict[str, Any]
 
 EQUIVALENCIAS, EQUIVALENCIAS_CRUDO = cargar_equivalencias()
 
-# Absorción anual de CO2 de un árbol, para el cálculo de compensación del informe. Son los
-# valores de referencia que adopta el trabajo, declarados como tales: no se midieron acá.
+# Annual CO2 absorption of a tree, for the report's offsetting calculation. These are the
+# reference values adopted by this work, declared as such: they were not measured here.
 ARBOLES: list[tuple[str, float, str]] = [
     (item["nombre"], float(item["kg_co2_por_anio"]), item.get("detalle", ""))
     for item in EQUIVALENCIAS_CRUDO.get("arboles", [])

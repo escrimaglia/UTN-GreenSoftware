@@ -1,7 +1,7 @@
 [project]
 name = "huella-carbono"
-version = "0.4.3"
-description = "Medición de la huella de carbono de algoritmos en Python — proyecto UTN"
+version = "0.4.4"
+description = "Measuring the carbon footprint of Python algorithms — UTN project"
 readme = "README.md"
 authors = [
     { name = "Ed Scrimaglia", email = "edgardo.scrimaglia@gmail.com" }

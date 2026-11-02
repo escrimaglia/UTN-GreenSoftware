@@ -1,225 +1,227 @@
-# Huella de carbono de algoritmos en Python
+# Carbon footprint of Python algorithms
 
 Green Software — Universidad Tecnológica Nacional - FRC.
 
-## Qué es
+## What it is
 
-Un banco de pruebas que **mide la energía consumida y el CO₂ emitido al ejecutar
-algoritmos**, y genera un informe con los resultados.
+A test bench that **measures the energy consumed and the CO₂ emitted when running
+algorithms**, and produces a report with the results.
 
-No estima a partir de una tabla ni de un modelo teórico: corre los algoritmos en el
-equipo, lee el consumo real del procesador mientras trabajan y lo convierte a emisiones
-con el factor de la red eléctrica argentina.
+It does not estimate from a table or a theoretical model: it runs the algorithms on the
+machine, reads the processor's actual power draw while they work, and converts it to
+emissions using the Argentine power grid's emission factor.
 
-## De qué se trata
+## What it is about
 
-La pregunta que responde es: **¿la complejidad computacional tiene una consecuencia
-ambiental medible?**
+The question it answers is: **does computational complexity have a measurable
+environmental consequence?**
 
-Para responderla compara variantes que resuelven **exactamente el mismo problema y
-devuelven el mismo resultado** —verificado por aserción antes de cada medición—, de modo
-que la única diferencia entre ellas sea cómo llegan a ese resultado. Si un algoritmo
-emite mil veces más que otro para producir lo mismo, la diferencia es atribuible a la
-decisión de diseño y a nada más.
+To answer it, it compares variants that solve **exactly the same problem and return the
+same result** —checked by assertion before each measurement—, so that the only difference
+between them is how they reach that result. If one algorithm emits a thousand times more
+than another to produce the same output, the difference is attributable to the design
+decision and nothing else.
 
-Son cuatro experimentos, cada uno con una pregunta propia:
+There are four experiments, each with its own question:
 
-| Experimento | Qué pone a prueba | Variantes |
+| Experiment | What it tests | Variants |
 |---|---|---|
-| `ordenamiento` | complejidad: O(n²) contra O(n log n) | `bubble_sort`, `merge_sort`, `timsort_nativo` |
-| `fibonacci` | el costo de recalcular trabajo ya hecho | `fib_recursivo`, `fib_memoizado`, `fib_iterativo` |
-| `matrices` | a igual complejidad, cuánto pesa la implementación | `matmul_python`, `matmul_numpy` |
-| `aprendizaje_knn` | el efecto del paralelismo, entrenando un modelo real | `knn_brute`, `knn_kd_tree`, `knn_ball_tree` |
+| `ordenamiento` | complexity: O(n²) versus O(n log n) | `bubble_sort`, `merge_sort`, `timsort_nativo` |
+| `fibonacci` | the cost of recomputing work already done | `fib_recursivo`, `fib_memoizado`, `fib_iterativo` |
+| `matrices` | at equal complexity, how much the implementation weighs | `matmul_python`, `matmul_numpy` |
+| `aprendizaje_knn` | the effect of parallelism, training a real model | `knn_brute`, `knn_kd_tree`, `knn_ball_tree` |
 
-Diferencia de emisiones entre la mejor y la peor variante de cada experimento, en su
-tamaño más grande. Se informa la potencia de diez inmediatamente inferior al factor
-medido, para que este README no quede desincronizado al volver a medir:
+Emissions gap between the best and the worst variant of each experiment, at its largest
+size. The power of ten immediately below the measured factor is reported, so that this
+README does not fall out of sync when measurements are rerun:
 
-| Experimento | Diferencia de emisiones |
+| Experiment | Emissions gap |
 |---|---|
-| Ordenamiento | más de 10³× |
-| Fibonacci | más de 10⁵× |
-| Matrices | más de 10²× |
-| KNN | más de 10¹× |
+| Sorting | more than 10³× |
+| Fibonacci | more than 10⁵× |
+| Matrices | more than 10²× |
+| KNN | more than 10¹× |
 
-Las cifras exactas de la última corrida están en [`INFORME.md`](INFORME.md).
+The exact figures from the latest run are in [`INFORME.md`](INFORME.md).
 
-## Para qué se usa
+## What it is for
 
-- **Para sostener con mediciones un argumento que suele darse por sentado.** "Elegir bien
-  el algoritmo ahorra energía" es una afirmación verificable, y este proyecto la verifica
-  en lugar de repetirla.
-- **Para traducir emisiones a magnitudes comprensibles.** El informe extrapola cada
-  algoritmo a escalas reales de uso y expresa el resultado en kilómetros de auto y cargas
-  de teléfono, no sólo en microgramos de CO₂.
-- **Para mostrar cuánto depende una medición de huella del método con que se hizo.** El
-  mismo banco de pruebas da valores absolutos distintos según si la potencia se midió o se
-  estimó, y el informe declara con cuál de los dos caminos obtuvo los suyos en lugar de
-  presentar el número como si fuera único.
-- **Como base para medir otro código.** La estructura —verificar equivalencia, medir por
-  lotes, repetir, informar dispersión— sirve para cualquier comparación de huella, no sólo
-  para estos algoritmos.
+- **To back with measurements an argument that is usually taken for granted.** "Choosing
+  the right algorithm saves energy" is a verifiable claim, and this project verifies it
+  instead of repeating it.
+- **To translate emissions into understandable quantities.** The report extrapolates each
+  algorithm to real-world usage scales and expresses the result in car kilometers and
+  phone charges, not just micrograms of CO₂.
+- **To show how much a footprint measurement depends on the method used.** The same test
+  bench yields different absolute values depending on whether power was measured or
+  estimated, and the report states which of the two paths produced its figures instead of
+  presenting the number as if it were the only one.
+- **As a basis for measuring other code.** The structure —verify equivalence, measure in
+  batches, repeat, report dispersion— works for any footprint comparison, not just for
+  these algorithms.
 
-## Cómo se usa
+## How to use it
 
-### Instalación
-
-```bash
-uv sync        # instala el entorno exacto desde uv.lock
-```
-
-Requiere Python 3.12 y [uv](https://docs.astral.sh/uv/).
-
-**El proyecto es agnóstico de plataforma:** corre en macOS, Linux y Windows sin cambiar
-nada. Ninguna parte del banco de pruebas está atada a un sistema operativo —no hay código
-que se elija según el sistema— y lo único que se adapta es de dónde sale la potencia, que
-se resuelve en cada corrida preguntándole al equipo qué ofrece. Donde no hay lectura
-disponible, se estima y se deja constancia. No hay ninguna rama de código que dependa del
-sistema operativo.
-
-Corrido y verificado en macOS con Apple Silicon; en Linux y Windows no se verificó.
-
-### Correr el banco de pruebas
+### Installation
 
 ```bash
-uv run huella-carbono --completo   # los 4 experimentos, todos los tamaños (~11 min)
-uv run huella-carbono --rapido     # los 4 experimentos con tamaños reducidos (~6 min)
+uv sync        # installs the exact environment from uv.lock
 ```
 
-`--completo` es el modo por defecto: `uv run huella-carbono` sin argumentos hace lo mismo.
-Cada corrida sobrescribe `resultados/` e `INFORME.md`.
+Requires Python 3.12 and [uv](https://docs.astral.sh/uv/).
 
-Los tiempos los domina la ventana de medición, no el trabajo de los algoritmos: leer la
-potencia del hardware exige al menos 3 s por punto medido, y son 42 configuraciones en el
-modo completo y 22 en el rápido. Por eso el tamaño de las entradas casi no cambia la
-duración total. Cuando la potencia se estima en lugar de medirse basta con 0,5 s por punto
-y la corrida completa baja a unos 2,5 min.
+**The project is platform-agnostic:** it runs on macOS, Linux and Windows without changing
+anything. No part of the test bench is tied to an operating system —there is no code
+selected by system— and the only thing that adapts is where the power reading comes from,
+which is resolved on each run by asking the machine what it offers. Where no reading is
+available, power is estimated and that fact is recorded. There is no code branch that
+depends on the operating system.
 
-### Medir la potencia en lugar de estimarla
+Run and verified on macOS with Apple Silicon; not verified on Linux or Windows.
 
-Es la decisión que más afecta a los resultados, y es también lo que hace al proyecto
-independiente de la plataforma: en lugar de asumir un sistema operativo, **lee la potencia
-real del procesador siempre que el equipo lo permita y sólo la estima cuando no**. La
-corrida nunca falla por esto; lo que cambia es la calidad del dato, y el informe lo
-declara.
+### Running the test bench
 
-| Plataforma | Cómo se lee la potencia | Requisito | Verificado |
+```bash
+uv run huella-carbono --full    # all 4 experiments, all sizes (~11 min)
+uv run huella-carbono --quick   # all 4 experiments with reduced sizes (~6 min)
+```
+
+`--full` is the default mode: `uv run huella-carbono` with no arguments does the same.
+Each run overwrites `resultados/` and `INFORME.md`.
+
+Run times are dominated by the measurement window, not by the algorithms' work: reading
+power from the hardware requires at least 3 s per measured point, and there are 42
+configurations in full mode and 22 in quick mode. That is why input size barely changes
+the total duration. When power is estimated instead of measured, 0.5 s per point is
+enough and the full run drops to about 2.5 min.
+
+### Measuring power instead of estimating it
+
+This is the decision that most affects the results, and it is also what makes the project
+platform-independent: instead of assuming an operating system, **it reads the processor's
+actual power whenever the machine allows it and only estimates it when it does not**. The
+run never fails because of this; what changes is the quality of the data, and the report
+states it.
+
+| Platform | How power is read | Requirement | Verified |
 |---|---|---|---|
-| macOS con Apple Silicon | utilidad de consumo del sistema | privilegios de administrador | sí, en este equipo |
-| Linux | contadores del procesador | ninguno | no probado |
-| Windows 11 | medidor de energía del sistema | equipo físico, no virtualizado | no probado |
-| cualquiera, si no hay lectura | se estima a partir de la carga | — | sí, en este equipo |
+| macOS with Apple Silicon | system power utility | administrator privileges | yes, on this machine |
+| Linux | processor counters | none | not tested |
+| Windows 11 | system energy meter | physical machine, not virtualized | not tested |
+| any, if no reading is available | estimated from load | — | yes, on this machine |
 
-Las dos filas marcadas «no probado» son lo que la herramienta de medición intenta en esas
-plataformas según su documentación; este proyecto sólo se corrió en macOS.
+The two rows marked "not tested" are what the measurement tool attempts on those
+platforms according to its documentation; this project was only run on macOS.
 
-No hay nada que preparar: la corrida resuelve sola de dónde sacar la potencia. Si el
-equipo no permite leerla, no falla —cae a la estimación, lo deja registrado en
-`resultados/metadatos.json` y el informe declara cuál de los dos caminos se usó—. La
-diferencia importa: con estimación, los valores absolutos se calculan a partir de un
-consumo nominal genérico de 85 W, propio de una computadora de escritorio.
+There is nothing to set up: the run works out on its own where to get the power from. If
+the machine does not allow reading it, it does not fail —it falls back to estimation,
+records it in `resultados/metadatos.json`, and the report states which of the two paths
+was used—. The difference matters: with estimation, absolute values are computed from a
+generic nominal draw of 85 W, typical of a desktop computer.
 
-La primera línea de la corrida dice cuál quedó activo:
+The first line of the run shows which one is active:
 
 ```
-potencia del CPU: lectura directa (apple_powermetrics)  |  ventana de medición >= 3.0 s
+CPU power: direct reading (apple_powermetrics)  |  measurement window >= 3.0 s
 ```
 
-### Correr un experimento en particular
+### Running a specific experiment
 
-`--solo` acepta uno o varios de los cuatro nombres:
+`--only` accepts one or more of the four names:
 
 ```bash
-uv run huella-carbono --completo --solo ordenamiento
-uv run huella-carbono --completo --solo matrices aprendizaje_knn
-uv run huella-carbono --rapido   --solo aprendizaje_knn
+uv run huella-carbono --full  --only ordenamiento
+uv run huella-carbono --full  --only matrices aprendizaje_knn
+uv run huella-carbono --quick --only aprendizaje_knn
 ```
 
-| Clave | Tamaños en `--completo` |
+| Key | Sizes in `--full` |
 |---|---|
-| `ordenamiento` | 1.000 → 8.000 elementos |
+| `ordenamiento` | 1,000 → 8,000 elements |
 | `fibonacci` | n = 20 → 32 |
-| `matrices` | matrices de 100×100 → 300×300 |
-| `aprendizaje_knn` | 2.500 → 20.000 muestras |
+| `matrices` | 100×100 → 300×300 matrices |
+| `aprendizaje_knn` | 2,500 → 20,000 samples |
 
-**Atención:** una corrida con `--solo` reescribe `resultados/` e `INFORME.md` con
-*únicamente* esos experimentos, y no hay deshacer. Si los resultados actuales importan,
-copiarlos antes.
+**Warning:** a run with `--only` rewrites `resultados/` and `INFORME.md` with *only* those
+experiments, and there is no undo. If the current results matter, copy them first.
 
-### Otras opciones
+### Other options
 
 ```bash
-uv run huella-carbono --repeticiones 5    # repeticiones por punto (por defecto 3)
-uv run huella-carbono --solo-informe      # regenera gráficos e informe sin volver a medir
+uv run huella-carbono --repetitions 5    # repetitions per point (default 3)
+uv run huella-carbono --report-only      # regenerates charts and report without measuring again
 uv run huella-carbono --help
 ```
 
-`--solo-informe` no mide: relee `resultados/simulacion_huella_carbono.csv` y regenera los
-gráficos y el informe. Es lo que hay que usar después de tocar el código del informe.
+`--report-only` does not measure: it rereads `resultados/simulacion_huella_carbono.csv`
+and regenerates the charts and the report. It is what to use after changing the report
+code.
 
-### Qué produce
+### What it produces
 
-| Salida | Contenido |
+| Output | Contents |
 |---|---|
-| `INFORME.md` | el informe completo: metodología, resultados, análisis, limitaciones y fuentes |
-| `resultados/simulacion_huella_carbono.csv` | una fila por medición, con tiempo, energía y CO₂ |
-| `resultados/metadatos.json` | equipo, versiones y parámetros con que se corrió |
-| `resultados/graficos/*.png` | los cinco gráficos que embebe el informe |
+| `INFORME.md` | the full report: methodology, results, analysis, limitations and sources |
+| `resultados/simulacion_huella_carbono.csv` | one row per measurement, with time, energy and CO₂ |
+| `resultados/metadatos.json` | machine, versions and parameters used for the run |
+| `resultados/graficos/*.png` | the five charts embedded in the report |
 
-Ninguna cifra del informe está escrita a mano: todas se derivan del CSV medido, así que el
-reporte no puede quedar desincronizado de los datos.
+No figure in the report is written by hand: they are all derived from the measured CSV,
+so the report cannot fall out of sync with the data.
 
-## El CSV de resultados
+## The results CSV
 
-`resultados/simulacion_huella_carbono.csv` es el exportable del proyecto: el registro
-crudo de lo que se midió. El informe es su lectura; el CSV es la evidencia.
+`resultados/simulacion_huella_carbono.csv` is the project's export: the raw record of
+what was measured. The report is its reading; the CSV is the evidence.
 
-**Por qué existe y por qué es uno solo.** Una medición que no se puede auditar no vale
-como medición: cualquier cifra del informe tiene que poder rastrearse hasta el dato que la
-originó. Por eso se guarda el grano más fino —cada medición individual, sin promediar— y
-todo lo demás se deriva de ahí en el momento de generar el informe. Guardar además una
-tabla de promedios sería versionar dos veces la misma información y abrir la puerta a que
-las dos versiones se contradigan. También queda como insumo para analizarlo por fuera del
-proyecto, con una planilla o con cualquier herramienta de datos.
+**Why it exists and why there is only one.** A measurement that cannot be audited is not
+worth much as a measurement: every figure in the report has to be traceable back to the
+data point it came from. That is why the finest grain is stored —each individual
+measurement, without averaging— and everything else is derived from it when the report
+is generated. Also storing a table of averages would mean versioning the same information
+twice and opening the door to the two versions contradicting each other. It also remains
+available as input for analysis outside the project, with a spreadsheet or any data tool.
 
-**Qué contiene.** Una fila por medición y 21 columnas. En una corrida completa son 126
-filas: 42 configuraciones —cada combinación de algoritmo y tamaño— por 3 repeticiones.
+**What it contains.** One row per measurement and 12 columns. A full run has 126 rows: 42
+configurations —each combination of algorithm and size— times 3 repetitions. Column names
+are kept as they are in the data file.
 
-| Columna | Contenido |
+| Column | Contents |
 |---|---|
-| `experimento`, `algoritmo`, `complejidad`, `n` | qué se midió y de qué tamaño |
-| `repeticion`, `ejecuciones_lote` | cuál de las tres repeticiones es, y cuántas ejecuciones entraron en el lote medido |
-| `tiempo_s` | segundos por ejecución, cronometrados alrededor del trabajo |
-| `tiempo_s_informado` | la duración que informa la herramienta, que incluye lo que ella tarda en leer la potencia. Se guarda para que esa diferencia quede a la vista |
-| `energia_kwh`, `co2_kg` | el consumo y las emisiones por ejecución. **Son las cifras del informe** |
-| `co2_kg_nativo` | el CO₂ que la herramienta calcularía con su propia tabla de factores de emisión, en lugar del de secc 2 del informe |
-| `potencia_cpu_w` | la potencia de procesador registrada en esa medición |
+| `experimento`, `algoritmo`, `complejidad`, `n` | experiment, algorithm, complexity and input size: what was measured and at what size |
+| `repeticion`, `ejecuciones_lote` | which of the three repetitions it is, and how many executions went into the measured batch |
+| `tiempo_s` | seconds per execution, timed around the work |
+| `tiempo_s_informado` | the duration reported by the tool, which includes the time it takes to read power. It is kept so that this difference is visible |
+| `energia_kwh`, `co2_kg` | energy and emissions per execution. **These are the report's figures** |
+| `co2_kg_nativo` | the CO₂ the tool would compute with its own emission factor table, instead of the one in section 2 of the report |
+| `potencia_cpu_w` | the processor power recorded for that measurement |
 
-## Cómo funciona
+## How it works
 
-**El proyecto se basa en CodeCarbon**, la herramienta estándar de la industria, en modo
-offline con el factor de emisión de Argentina. Es la única vía de medición: no hay ningún
-otro cálculo de consumo ni de emisiones en el código. El informe menciona en secc 3.3 que
-existe la alternativa de deducir la potencia con un modelo propio, pero es una mención:
-este proyecto no la implementa.
+**The project is built on CodeCarbon**, the industry-standard tool, in offline mode with
+Argentina's emission factor. It is the only measurement path: there is no other energy or
+emissions calculation in the code. Section 3.3 of the report mentions that power could
+alternatively be derived with a custom model, but only as a mention: this project does
+not implement it.
 
-Decisiones metodológicas que sostienen los resultados:
+Methodological decisions that support the results:
 
-- **Verificación de equivalencia.** Antes de medir se comprueba que todas las variantes
-  devuelvan el mismo resultado. Comparar la huella de algoritmos que no resuelven lo mismo
-  no tendría validez.
-- **Medición por lotes.** Varios algoritmos terminan en microsegundos, mucho menos de lo
-  que tarda cualquier lectura de consumo. Se ejecutan K veces dentro de la ventana medida
-  y se divide por K, con K calibrado por una corrida de prueba previa. La ventana mínima
-  depende de la fuente de potencia: 3 s si se lee del hardware, 0,5 s si se estima.
-- **Repeticiones.** Cada punto se mide 3 veces y se informan media y dispersión. En la
-  última corrida la dispersión mediana fue del 4,7%.
-- **Factor de emisión al día.** Se lee en cada corrida del último año disponible de la
-  serie argentina versionada en `datos/`, en lugar del valor de 2023 que trae CodeCarbon.
-- **Un solo CSV.** Los promedios y desvíos se derivan en memoria, para no versionar dos
-  veces la misma información.
+- **Equivalence check.** Before measuring, all variants are checked to return the same
+  result. Comparing the footprint of algorithms that do not solve the same problem would
+  not be valid.
+- **Batch measurement.** Several algorithms finish in microseconds, far less than any
+  power reading takes. They are run K times inside the measured window and the result is
+  divided by K, with K calibrated by a prior probe run. The minimum window depends on the
+  power source: 3 s if read from the hardware, 0.5 s if estimated.
+- **Repetitions.** Each point is measured 3 times and the mean and dispersion are
+  reported. In the latest run the median dispersion was 4.7%.
+- **Up-to-date emission factor.** On each run it is read from the most recent year
+  available in the Argentine series versioned in `datos/`, instead of the 2023 value
+  bundled with CodeCarbon.
+- **A single CSV.** Averages and standard deviations are derived in memory, so the same
+  information is not versioned twice.
 
-## Estructura
+## Structure
 
 ```
 src/huella_carbono/          datos/
@@ -234,32 +236,32 @@ src/huella_carbono/          datos/
 └── main.py                  INFORME.md
 ```
 
-**El código**
+**The code**
 
-| Archivo | Qué contiene |
+| File | Contents |
 |---|---|
-| `__init__.py` | nombre y versión del paquete |
-| `config.py` | los parámetros del modelo energético, cada uno con su fuente, y la definición de los cuatro experimentos: tamaños, variantes y descripciones |
-| `algoritmos.py` | las implementaciones de ordenamiento, Fibonacci y matrices, más la verificación de que todas las variantes de un experimento devuelven el mismo resultado |
-| `ml.py` | el experimento de KNN, en módulo aparte para no pagar el costo de importar scikit-learn cuando no se usa |
-| `medidor.py` | la medición con CodeCarbon y el dimensionado del lote de cada punto |
-| `benchmark.py` | la orquestación: recorre experimentos y tamaños, mide, y vuelca el CSV y los metadatos |
-| `graficos.py` | los cinco gráficos que embebe el informe |
-| `informe.py` | genera `INFORME.md` a partir del CSV y los metadatos |
-| `main.py` | la interfaz de línea de comandos |
+| `__init__.py` | package name and version |
+| `config.py` | the energy model parameters, each with its source, and the definition of the four experiments: sizes, variants and descriptions |
+| `algoritmos.py` | the sorting, Fibonacci and matrix implementations, plus the check that all variants of an experiment return the same result |
+| `ml.py` | the KNN experiment, in a separate module so the cost of importing scikit-learn is not paid when it is not used |
+| `medidor.py` | the CodeCarbon measurement and the batch sizing for each point |
+| `benchmark.py` | orchestration: iterates over experiments and sizes, measures, and writes the CSV and metadata |
+| `graficos.py` | the five charts embedded in the report |
+| `informe.py` | generates `INFORME.md` from the CSV and the metadata |
+| `main.py` | the command-line interface |
 
-**Las entradas de datos**, versionadas con el proyecto y no generadas por las corridas:
+**The data inputs**, versioned with the project and not generated by the runs:
 
-| Archivo | Qué contiene |
+| File | Contents |
 |---|---|
-| `datos/intensidad_carbono_argentina.json` | la serie anual de gCO₂eq/kWh de la red argentina, con su fuente y fecha de descarga. De acá sale el factor de emisión con el que se convierte la energía en CO₂ |
-| `datos/equivalencias_co2.json` | los factores para traducir kgCO₂eq a magnitudes tangibles: kilómetros en auto, cargas de teléfono y absorción anual de un árbol |
+| `datos/intensidad_carbono_argentina.json` | the annual gCO₂eq/kWh series for the Argentine grid, with its source and download date. This is where the emission factor used to convert energy into CO₂ comes from |
+| `datos/equivalencias_co2.json` | the factors for translating kgCO₂eq into tangible quantities: car kilometers, phone charges and the annual absorption of a tree |
 
-**Las salidas** de la última corrida:
+**The outputs** of the latest run:
 
-| Archivo | Qué contiene |
+| File | Contents |
 |---|---|
-| `resultados/simulacion_huella_carbono.csv` | el resultado de la simulación, descrito arriba en su propia sección |
-| `resultados/metadatos.json` | con qué equipo, qué versiones y qué parámetros se corrió, y de dónde salió la potencia |
-| `resultados/graficos/` | los cinco PNG que embebe el informe |
-| `INFORME.md` | el informe, generado en cada corrida |
+| `resultados/simulacion_huella_carbono.csv` | the simulation result, described above in its own section |
+| `resultados/metadatos.json` | which machine, versions and parameters were used for the run, and where the power reading came from |
+| `resultados/graficos/` | the five PNGs embedded in the report |
+| `INFORME.md` | the report, generated on each run |

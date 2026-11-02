@@ -1,17 +1,17 @@
-# Calcular la huella de carbono de los algoritmos de Python
+# Compute the carbon footprint of Python algorithms
 # By Ed Scrimaglia
 
 """
-Implementaciones a comparar.
+Implementations to compare.
 
-Todas las funciones son puras: reciben la entrada, devuelven el resultado y no hacen
-I/O ni imprimen nada. Eso es indispensable para que la medición refleje el costo del
-algoritmo y no el de operaciones ajenas.
+All functions are pure: they take the input, return the result, and do no
+I/O and print nothing. This is essential so that the measurement reflects the cost of the
+algorithm and not that of unrelated operations.
 
-Dentro de cada experimento, todas las variantes resuelven EXACTAMENTE el mismo problema
-y producen el mismo resultado. Esa equivalencia se verifica con `validar_experimento()`
-antes de medir: comparar la huella de dos algoritmos que no hacen lo mismo no tendría
-sentido.
+Within each experiment, all variants solve EXACTLY the same problem
+and produce the same result. That equivalence is verified with `validar_experimento()`
+before measuring: comparing the footprint of two algorithms that do not do the same thing
+would make no sense.
 """
 
 from __future__ import annotations
@@ -25,19 +25,19 @@ import numpy as np
 
 from huella_carbono.config import SEMILLA
 
-# La variante recursiva ingenua de Fibonacci alcanza profundidades moderadas, pero
-# merge_sort recursivo sobre 8000 elementos llega a ~log2(8000) ≈ 13 niveles, así que
-# el límite por defecto alcanza. Se eleva igual por seguridad ante entradas mayores.
+# The naive recursive Fibonacci variant reaches moderate depths, and recursive
+# merge_sort over 8000 elements reaches ~log2(8000) ≈ 13 levels, so the default
+# limit is enough. It is raised anyway as a safeguard against larger inputs.
 sys.setrecursionlimit(10_000)
 
 
 # ======================================================================================
-# Experimento 1 — Ordenamiento
+# Experiment 1 — Sorting
 # ======================================================================================
 
 
 def bubble_sort(datos: list[int]) -> list[int]:
-    """Ordenamiento burbuja con corte temprano. Complejidad O(n²)."""
+    """Bubble sort with early exit. Complexity O(n²)."""
     a = list(datos)
     n = len(a)
     for i in range(n - 1):
@@ -52,7 +52,7 @@ def bubble_sort(datos: list[int]) -> list[int]:
 
 
 def merge_sort(datos: list[int]) -> list[int]:
-    """Ordenamiento por mezcla, recursivo, en Python puro. Complejidad O(n log n)."""
+    """Recursive merge sort in pure Python. Complexity O(n log n)."""
     a = list(datos)
     if len(a) <= 1:
         return a
@@ -78,30 +78,30 @@ def mezclar(izq: list[int], der: list[int]) -> list[int]:
 
 
 def timsort_nativo(datos: list[int]) -> list[int]:
-    """`sorted()` de CPython: Timsort, O(n log n), implementado en C."""
+    """CPython's `sorted()`: Timsort, O(n log n), implemented in C."""
     return sorted(datos)
 
 
 def generar_entrada_ordenamiento(n: int) -> list[int]:
-    """Lista pseudoaleatoria reproducible: misma semilla -> misma entrada."""
+    """Reproducible pseudorandom list: same seed -> same input."""
     rng = random.Random(SEMILLA)
     return [rng.randint(0, 10 * n) for _ in range(n)]
 
 
 # ======================================================================================
-# Experimento 2 — Fibonacci
+# Experiment 2 — Fibonacci
 # ======================================================================================
 
 
 def fib_recursivo(n: int) -> int:
-    """Recursión ingenua: recalcula los mismos subproblemas. Complejidad O(φⁿ)."""
+    """Naive recursion: recomputes the same subproblems. Complexity O(φⁿ)."""
     if n < 2:
         return n
     return fib_recursivo(n - 1) + fib_recursivo(n - 2)
 
 
 def fib_memoizado(n: int) -> int:
-    """Misma recursión, pero cacheando subproblemas. Complejidad O(n)."""
+    """Same recursion, but caching subproblems. Complexity O(n)."""
 
     @lru_cache(maxsize=None)
     def fib(k: int) -> int:
@@ -109,13 +109,13 @@ def fib_memoizado(n: int) -> int:
             return k
         return fib(k - 1) + fib(k - 2)
 
-    # La caché se crea dentro de la función para que cada medición parta de cero y no
-    # se beneficie de las corridas anteriores (lo que falsearía las repeticiones).
+    # The cache is created inside the function so that each measurement starts from scratch and
+    # does not benefit from previous runs (which would distort the repetitions).
     return fib(n)
 
 
 def fib_iterativo(n: int) -> int:
-    """Versión iterativa, sin recursión ni caché. Complejidad O(n), memoria O(1)."""
+    """Iterative version, with no recursion or cache. Complexity O(n), memory O(1)."""
     a, b = 0, 1
     for _ in range(n):
         a, b = b, a + b
@@ -123,12 +123,12 @@ def fib_iterativo(n: int) -> int:
 
 
 # ======================================================================================
-# Experimento 3 — Multiplicación de matrices
+# Experiment 3 — Matrix multiplication
 # ======================================================================================
 
 
 def matmul_python(par: tuple[list[list[float]], list[list[float]]]) -> list[list[float]]:
-    """Producto matricial con triple bucle en Python puro. Complejidad O(n³)."""
+    """Matrix product with a triple loop in pure Python. Complexity O(n³)."""
     a, b = par
     n = len(a)
     m = len(b[0])
@@ -148,14 +148,14 @@ def matmul_python(par: tuple[list[list[float]], list[list[float]]]) -> list[list
 
 
 def matmul_numpy(par: tuple[list[list[float]], list[list[float]]]) -> list[list[float]]:
-    """Mismo producto delegado a NumPy/BLAS. Misma complejidad O(n³)."""
+    """Same product delegated to NumPy/BLAS. Same complexity O(n³)."""
     a, b = par
     resultado = np.asarray(a) @ np.asarray(b)
     return resultado.tolist()
 
 
 def generar_entrada_matrices(n: int) -> tuple[list[list[float]], list[list[float]]]:
-    """Dos matrices n×n reproducibles, como listas de listas para no favorecer a NumPy."""
+    """Two reproducible n×n matrices, as lists of lists so as not to favor NumPy."""
     rng = np.random.default_rng(SEMILLA)
     a = rng.random((n, n)).round(6)
     b = rng.random((n, n)).round(6)
@@ -163,19 +163,19 @@ def generar_entrada_matrices(n: int) -> tuple[list[list[float]], list[list[float
 
 
 # ======================================================================================
-# Experimento 4 — Aprendizaje automático (en `ml.py`)
+# Experiment 4 — Machine learning (in `ml.py`)
 # ======================================================================================
 
-# El experimento de KNN vive en `ml.py` porque importar scikit-learn cuesta ~1,5 s medidos,
-# y este módulo se importa también cuando sólo se regenera el informe. Acá se registran
-# adaptadores que resuelven el módulo real en la primera llamada y lo dejan cacheado.
+# The KNN experiment lives in `ml.py` because importing scikit-learn takes ~1.5 s (measured),
+# and this module is also imported when only the report is regenerated. Here we register
+# adapters that resolve the real module on the first call and keep it cached.
 
 CLAVE_ML = "aprendizaje_knn"
 MODULO_ML: Any = None
 
 
 def modulo_ml() -> Any:
-    """Importa `huella_carbono.ml` la primera vez que se lo necesita y lo cachea."""
+    """Import `huella_carbono.ml` the first time it is needed and cache it."""
     global MODULO_ML
     if MODULO_ML is None:
         from huella_carbono import ml
@@ -185,17 +185,17 @@ def modulo_ml() -> Any:
 
 
 def generar_entrada_knn(n: int) -> Any:
-    """Adaptador perezoso de `ml.generar_entrada_knn`."""
+    """Lazy adapter for `ml.generar_entrada_knn`."""
     return modulo_ml().generar_entrada_knn(n)
 
 
 def variante_knn(nombre: str) -> Callable[[Any], Any]:
     """
-    Adaptador perezoso de una variante de KNN.
+    Lazy adapter for a KNN variant.
 
-    La resolución del módulo es una consulta a `sys.modules` ya cacheada, del orden del
-    microsegundo, contra ventanas de medición de medio segundo como mínimo: no contamina
-    la medición.
+    Resolving the module is an already cached `sys.modules` lookup, on the order of a
+    microsecond, against measurement windows of at least half a second: it does not
+    contaminate the measurement.
     """
 
     def ejecutar(entrada: Any) -> Any:
@@ -206,10 +206,10 @@ def variante_knn(nombre: str) -> Callable[[Any], Any]:
 
 
 # ======================================================================================
-# Registro de experimentos
+# Experiment registry
 # ======================================================================================
 
-# clave del experimento -> (generador de entrada, {nombre de algoritmo: función})
+# experiment key -> (input generator, {algorithm name: function})
 REGISTRO: dict[str, tuple[Callable[[int], Any], dict[str, Callable[[Any], Any]]]] = {
     "ordenamiento": (
         generar_entrada_ordenamiento,
@@ -247,18 +247,18 @@ REGISTRO: dict[str, tuple[Callable[[int], Any], dict[str, Callable[[Any], Any]]]
 
 def resultados_equivalentes(obtenido: Any, referencia: Any) -> bool:
     """
-    Compara dos resultados del mismo experimento despachando por TIPO, no por experimento.
+    Compare two results of the same experiment, dispatching by TYPE, not by experiment.
 
-    Antes esto era un `if clave == "matrices"`, lo que dejaba a cualquier experimento nuevo
-    en la rama de igualdad exacta: con arrays de numpy, `obtenido == referencia` devuelve un
-    array y el `if` posterior levanta `ValueError: truth value of an array is ambiguous` en
-    lugar de un error legible.
+    This used to be an `if clave == "matrices"`, which left any new experiment
+    in the exact-equality branch: with numpy arrays, `obtenido == referencia` returns an
+    array and the subsequent `if` raises `ValueError: truth value of an array is ambiguous`
+    instead of a readable error.
 
-    - arrays de numpy: comparación exacta para enteros (etiquetas de clase), con tolerancia
-      para punto flotante;
-    - listas de listas de floats (matrices): con tolerancia, porque el orden de las sumas
-      difiere entre el intérprete y BLAS;
-    - todo lo demás: igualdad estructural.
+    - numpy arrays: exact comparison for integers (class labels), with tolerance
+      for floating point;
+    - lists of lists of floats (matrices): with tolerance, because the order of the sums
+      differs between the interpreter and BLAS;
+    - everything else: structural equality.
     """
     if isinstance(obtenido, np.ndarray) or isinstance(referencia, np.ndarray):
         a, b = np.asarray(obtenido), np.asarray(referencia)
@@ -276,10 +276,10 @@ def resultados_equivalentes(obtenido: Any, referencia: Any) -> bool:
 
 def validar_experimento(clave: str, n: int) -> None:
     """
-    Verifica que todas las variantes del experimento produzcan el mismo resultado.
+    Verify that all variants of the experiment produce the same result.
 
-    Es la precondición de todo el proyecto: solo tiene sentido comparar la huella de carbono
-    de algoritmos que resuelven el mismo problema con la misma salida.
+    It is the precondition of the whole project: comparing the carbon footprint only makes sense
+    for algorithms that solve the same problem with the same output.
     """
     generar, variantes = REGISTRO[clave]
     entrada = generar(n)
@@ -292,8 +292,8 @@ def validar_experimento(clave: str, n: int) -> None:
             continue
         if not resultados_equivalentes(obtenido, referencia):
             raise AssertionError(
-                f"[{clave}] '{nombre}' no coincide con '{nombre_referencia}' para n={n}. "
-                "Los algoritmos no son equivalentes: la comparación de huella no sería válida."
+                f"[{clave}] '{nombre}' does not match '{nombre_referencia}' for n={n}. "
+                "The algorithms are not equivalent: the footprint comparison would not be valid."
             )
 
     if clave == CLAVE_ML and referencia is not None:

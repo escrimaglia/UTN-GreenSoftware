@@ -1,13 +1,13 @@
-# Calcular la huella de carbono de los algoritmos de Python
+# Compute the carbon footprint of Python algorithms
 # By Ed Scrimaglia
 
 """
-Interfaz de línea de comandos.
+Command-line interface.
 
-    uv run huella-carbono --rapido      # validación del pipeline (< 1 min)
-    uv run huella-carbono --completo    # corrida final del proyecto
-    uv run huella-carbono --solo ordenamiento
-    uv run huella-carbono --solo-informe  # regenera gráficos e informe sin volver a medir
+    uv run huella-carbono --quick        # pipeline validation (< 1 min)
+    uv run huella-carbono --full         # final project run
+    uv run huella-carbono --only ordenamiento
+    uv run huella-carbono --report-only  # regenerate charts and report without measuring again
 """
 
 from __future__ import annotations
@@ -25,37 +25,37 @@ from huella_carbono.informe import generar
 def parsear_argumentos(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         prog="huella-carbono",
-        description="Mide la huella de carbono de algoritmos en Python y genera el reporte.",
+        description="Measures the carbon footprint of Python algorithms and generates the report.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     modo = parser.add_mutually_exclusive_group()
     modo.add_argument(
-        "--rapido",
+        "--quick",
         action="store_true",
-        help="corrida corta con tamaños reducidos, para validar el pipeline",
+        help="short run with reduced sizes, to validate the pipeline",
     )
     modo.add_argument(
-        "--completo",
+        "--full",
         action="store_true",
-        help="corrida final con todos los tamaños (por defecto)",
+        help="final run with all sizes (default)",
     )
     modo.add_argument(
-        "--solo-informe",
+        "--report-only",
         action="store_true",
-        help="regenera gráficos e informe a partir de los CSV ya existentes",
+        help="regenerate charts and report from the existing CSV",
     )
     parser.add_argument(
-        "--solo",
+        "--only",
         nargs="+",
         choices=list(config.EXPERIMENTOS),
-        metavar="EXPERIMENTO",
-        help=f"limita la corrida a estos experimentos: {', '.join(config.EXPERIMENTOS)}",
+        metavar="EXPERIMENT",
+        help=f"restrict the run to these experiments: {', '.join(config.EXPERIMENTOS)}",
     )
     parser.add_argument(
-        "--repeticiones",
+        "--repetitions",
         type=int,
         default=config.REPETICIONES,
-        help=f"repeticiones por punto de medición (por defecto {config.REPETICIONES})",
+        help=f"repetitions per measurement point (default {config.REPETICIONES})",
     )
     return parser.parse_args(argv)
 
@@ -64,33 +64,33 @@ def main(argv: list[str] | None = None) -> int:
     args = parsear_argumentos(argv)
 
     print("=" * 78)
-    print("  HUELLA DE CARBONO DE ALGORITMOS EN PYTHON")
+    print("  CARBON FOOTPRINT OF PYTHON ALGORITHMS")
     print("  Green Software — Universidad Tecnológica Nacional - FRC")
     print("=" * 78)
     print()
 
-    if args.solo_informe:
+    if args.report_only:
         _, resumen, metadatos = cargar_resultados()
-        print("Regenerando gráficos e informe desde los resultados existentes...")
+        print("Regenerating charts and report from the existing results...")
     else:
         inicio = time.perf_counter()
         ejecutar(
-            claves=args.solo,
-            rapido=args.rapido,
-            repeticiones=args.repeticiones,
+            claves=args.only,
+            rapido=args.quick,
+            repeticiones=args.repetitions,
         )
-        print(f"Benchmark completado en {time.perf_counter() - inicio:.1f} s\n")
+        print(f"Benchmark completed in {time.perf_counter() - inicio:.1f} s\n")
         _, resumen, metadatos = cargar_resultados()
 
     rutas = generar_todos(resumen)
     for nombre, ruta in rutas.items():
-        print(f"  gráfico [{nombre}] -> {ruta}")
+        print(f"  chart [{nombre}] -> {ruta}")
     print()
 
     generar(resumen, metadatos, rutas)
-    print(f"Reporte del benchmark -> {config.INFORME.relative_to(config.RAIZ)}")
+    print(f"Benchmark report -> {config.INFORME.relative_to(config.RAIZ)}")
     print()
-    print("Listo.")
+    print("Done.")
     return 0
 
 

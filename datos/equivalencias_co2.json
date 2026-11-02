@@ -1,37 +1,37 @@
 {
-  "descripcion": "Factores para traducir kgCO2eq a magnitudes tangibles en el informe. Los de tipo eléctrico se expresan como consumo en kWh y se convierten con el factor de emisión vigente del proyecto, para que nunca queden desfasados del FE en uso.",
+  "descripcion": "Factors for translating kgCO2eq into tangible quantities in the report. Electrical ones are expressed as consumption in kWh and converted with the project's current emission factor, so they never drift out of sync with the EF in use.",
   "electricas": [
     {
-      "nombre": "cargas completas de un smartphone",
+      "nombre": "full smartphone charges",
       "consumo_kwh": 0.01,
-      "detalle": "batería de ~10 Wh cargada desde la red"
+      "detalle": "~10 Wh battery charged from the grid"
     }
   ],
   "vehiculares": [
     {
-      "nombre": "km recorridos en auto",
+      "nombre": "km driven by car",
       "consumo_l_por_100km": 7.9,
-      "fuente_consumo": "GFEI / ONU Medio Ambiente, estudio de línea de base de eficiencia de vehículos livianos en Argentina (2018), sobre los vehículos registrados entre 2006 y 2017",
+      "fuente_consumo": "GFEI / UN Environment, baseline study of light-duty vehicle fuel efficiency in Argentina (2018), covering vehicles registered between 2006 and 2017",
       "url_consumo": "https://www.globalfueleconomy.org/news/event-showcases-argentina-s-new-comparative-vehicle-efficiency-label-and-electric-shift",
-      "combustible": "Nafta Grado 2 (Súper) con bioetanol 12%, CO₂ fósil",
+      "combustible": "Grade 2 (Premium) gasoline with 12% bioethanol, fossil CO₂",
       "factor_kg_co2_por_litro": 1.9693,
       "co2_biogenico_kg_por_litro": 0.1795,
-      "fuente_factor": "Sistema Nacional de Inventario de GEI de Argentina (SNIGEIAR), Factores de Emisión para huella de carbono 2025, Subsecretaría de Ambiente de la Nación, Tabla 2 «Combustibles - Transporte»",
+      "fuente_factor": "Sistema Nacional de Inventario de GEI de Argentina (SNIGEIAR, Argentina's national greenhouse gas inventory system), Factores de Emisión para huella de carbono 2025 (emission factors for carbon footprint 2025), Subsecretaría de Ambiente de la Nación (Argentina's national Environment Undersecretariat), Table 2 \"Combustibles - Transporte\" (Fuels - Transport)",
       "url_factor": "https://inventariogei.ambiente.gob.ar/files/Factores_de_Emision_SNIGEIAR_para_HC_2025.pdf",
       "descargado": "2026-08-22",
-      "nota": "El factor por km se calcula como consumo × factor del combustible, con datos argentinos en ambos términos. Se cuenta solo el CO₂ fósil: la nafta argentina lleva 12% de bioetanol por norma y su CO₂ biogénico (0,1795 kgCO₂/L, es decir 14,2 gCO₂/km) se informa aparte según la práctica del inventario nacional."
+      "nota": "The per-km factor is computed as consumption × fuel factor, with Argentine data for both terms. Only fossil CO₂ is counted: Argentine gasoline contains 12% bioethanol by regulation, and its biogenic CO₂ (0.1795 kgCO₂/L, i.e. 14.2 gCO₂/km) is reported separately, following the practice of the national inventory."
     }
   ],
   "arboles": [
     {
-      "nombre": "adulto",
+      "nombre": "mature",
       "kg_co2_por_anio": 300,
-      "detalle": "absorción anual de un árbol adulto, valor de referencia adoptado por el trabajo"
+      "detalle": "annual absorption of a mature tree, reference value adopted by this work"
     },
     {
-      "nombre": "recién plantado",
+      "nombre": "newly planted",
       "kg_co2_por_anio": 30,
-      "detalle": "absorción anual de un árbol recién plantado, valor de referencia adoptado por el trabajo"
+      "detalle": "annual absorption of a newly planted tree, reference value adopted by this work"
     }
   ]
 }

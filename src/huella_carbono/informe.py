@@ -1,12 +1,12 @@
-# Calcular la huella de carbono de los algoritmos de Python
+# Calculating the carbon footprint of Python algorithms
 # By Ed Scrimaglia
 
 """
-Generación del reporte del benchmark (`INFORME.md`).
+Generation of the benchmark report (`INFORME.md`).
 
-El informe se construye íntegramente a partir de `resultados/simulacion_huella_carbono.csv`
-y `resultados/metadatos.json`: ninguna cifra del texto está escrita a mano, de modo que
-el reporte no pueda quedar desincronizado de los datos medidos.
+The report is built entirely from `resultados/simulacion_huella_carbono.csv` and
+`resultados/metadatos.json`: no figure in the text is written by hand, so the report
+cannot fall out of sync with the measured data.
 """
 
 from __future__ import annotations
@@ -21,34 +21,34 @@ from huella_carbono.config import EQUIVALENCIAS, EXPERIMENTOS
 
 def formato_cientifico(valor: float, decimales: int = 3) -> str:
     """
-    Notación científica con coma decimal, para que todo el informe use la misma convención
-    tipográfica del español y no convivan dos separadores en la misma línea.
+    Scientific notation with a decimal point, the same convention used by every other
+    number in the report.
     """
     if pd.isna(valor):
         return "—"
-    return f"{valor:.{decimales}e}".replace(".", ",")
+    return f"{valor:.{decimales}e}"
 
 
 def formato_duracion(segundos: float) -> str:
     """
-    Duración en la unidad que la hace legible en prosa. La notación científica está bien
-    en una tabla, pero "4,493e-07 segundos" no se entiende leyendo.
+    Duration in the unit that makes it readable in prose. Scientific notation is fine in
+    a table, but "4.493e-07 seconds" is hard to grasp when reading.
     """
     if pd.isna(segundos):
         return "—"
     if segundos >= 1:
-        return f"{formato_numero(segundos)} segundos"
+        return f"{formato_numero(segundos)} seconds"
     if segundos >= 1e-3:
-        return f"{formato_numero(segundos * 1e3)} milésimas de segundo"
+        return f"{formato_numero(segundos * 1e3)} milliseconds"
     if segundos >= 1e-6:
-        return f"{formato_numero(segundos * 1e6)} millonésimas de segundo"
-    return f"{formato_numero(segundos * 1e9)} milmillonésimas de segundo"
+        return f"{formato_numero(segundos * 1e6)} microseconds"
+    return f"{formato_numero(segundos * 1e9)} nanoseconds"
 
 
 def formato_arboles(valor: float) -> str:
     """
-    Cantidad de árboles con los decimales que hagan falta para no redondear a cero: una
-    fracción chica de árbol es un dato, "0,00" es un error de presentación.
+    Number of trees with as many decimals as needed to avoid rounding to zero: a small
+    fraction of a tree is a data point, "0.00" is a presentation error.
     """
     if pd.isna(valor):
         return "—"
@@ -59,20 +59,18 @@ def formato_arboles(valor: float) -> str:
     return formato_cientifico(valor, 1)
 
 
-def plural_arbol(nombre: str) -> str:
-    """Concuerda en plural el nombre del árbol: "adulto" -> "adultos"."""
-    return " ".join(
-        palabra + "s" if palabra.endswith(("o", "a", "e")) else palabra
-        for palabra in nombre.split()
-    )
+def nombre_arbol(nombre: str) -> str:
+    """Tree name with its first letter capitalized, for the start of a table cell."""
+    return nombre[:1].upper() + nombre[1:]
 
 
 def formato_factor(valor: float) -> str:
     """
-    Formatea un factor de mejora con la precisión que corresponde a su magnitud.
+    Formats an improvement factor with the precision that matches its magnitude.
 
-    Con `decimales=0` fijo, un factor de 1,4 se imprimía como "1 veces menos", que además de
-    ilegible es falso. Los factores grandes, en cambio, no ganan nada con decimales.
+    With a fixed `decimales=0`, a factor of 1.4 was printed as "1 times less", which is
+    not only unreadable but false. Large factors, on the other hand, gain nothing from
+    decimals.
     """
     if pd.isna(valor):
         return "—"
@@ -85,14 +83,12 @@ def formato_factor(valor: float) -> str:
 
 def formato_numero(valor: float, decimales: int = 2) -> str:
     """
-    Formatea un número con las convenciones tipográficas del español: punto como
-    separador de miles y coma como separador decimal. La notación científica se deja
-    con punto decimal, que es la convención internacional en publicaciones técnicas.
+    Formats a number with English typographic conventions: comma as the thousands
+    separator and point as the decimal separator.
     """
     if pd.isna(valor):
         return "—"
-    texto = f"{valor:,.{decimales}f}"
-    return texto.replace(",", "\x00").replace(".", ",").replace("\x00", ".")
+    return f"{valor:,.{decimales}f}"
 
 
 def tabla_markdown(filas: list[list[str]], encabezados: list[str]) -> str:
@@ -114,10 +110,10 @@ def seccion_experimento(
     if datos.empty:
         return ""
 
-    partes = [f"### {exp.titulo}", "", f"**Pregunta:** {exp.pregunta}", "", exp.notas, ""]
+    partes = [f"### {exp.titulo}", "", f"**Question:** {exp.pregunta}", "", exp.notas, ""]
 
     def complejidad_de(algoritmo: str, guardada: str) -> str:
-        """Etiqueta vigente del experimento; la del CSV es la de la corrida que lo generó."""
+        """Current label from the experiment; the CSV's is from the run that produced it."""
         return exp.variantes.get(str(algoritmo), guardada)
 
     filas = []
@@ -144,36 +140,36 @@ def seccion_experimento(
             filas,
             [
                 "n",
-                "algoritmo",
-                "complejidad",
-                "tiempo [s]",
-                "energía [kWh]",
+                "algorithm",
+                "complexity",
+                "time [s]",
+                "energy [kWh]",
                 "CO₂ [kg]",
-                "disp.",
+                "spread",
             ],
         )
     )
     partes.append("")
 
-    # Factor de mejora entre el peor y el mejor algoritmo, en el mayor tamaño medido.
+    # Improvement factor between the worst and the best algorithm, at the largest size measured.
     n_max = datos.n.max()
     en_max = datos[datos.n == n_max].sort_values("co2_kg_mean")
     if len(en_max) >= 2:
         mejor, peor = en_max.iloc[0], en_max.iloc[-1]
         factor = peor.co2_kg_mean / mejor.co2_kg_mean
         partes.append(
-            f"**Resultado para n = {formato_numero(int(n_max), 0)}:** `{mejor.algoritmo}` "
-            f"({complejidad_de(mejor.algoritmo, mejor.complejidad)}) emite "
-            f"**{formato_factor(factor)} veces menos** CO₂ que `{peor.algoritmo}` "
-            f"({complejidad_de(peor.algoritmo, peor.complejidad)}), produciendo exactamente "
-            f"el mismo resultado."
+            f"**Result for n = {formato_numero(int(n_max), 0)}:** `{mejor.algoritmo}` "
+            f"({complejidad_de(mejor.algoritmo, mejor.complejidad)}) emits "
+            f"**{formato_factor(factor)} times less** CO₂ than `{peor.algoritmo}` "
+            f"({complejidad_de(peor.algoritmo, peor.complejidad)}), while producing exactly "
+            f"the same result."
         )
         partes.append("")
 
-        # Cuando el factor de tiempo y el de CO2 no coinciden, decirlo: es el caso en que
-        # optimizar el reloj no equivale a optimizar la huella. Se informa sólo si la
-        # diferencia entre ambos factores es apreciable, para no ensuciar los experimentos
-        # donde tiempo y emisiones van de la mano.
+        # When the time factor and the CO2 factor disagree, say so: it is the case where
+        # optimizing the clock is not the same as optimizing the footprint. It is reported
+        # only if the gap between both factors is significant, so as not to clutter the
+        # experiments where time and emissions go hand in hand.
         if peor.tiempo_s_mean > 0 and mejor.tiempo_s_mean > 0:
             factor_tiempo = float(peor.tiempo_s_mean / mejor.tiempo_s_mean)
             if factor_tiempo > 0 and (
@@ -181,21 +177,21 @@ def seccion_experimento(
             ):
                 if factor_tiempo > factor:
                     partes.append(
-                        f"Pero el tiempo cuenta otra historia: `{mejor.algoritmo}` es "
-                        f"**{formato_factor(factor_tiempo)} veces más rápido** y sólo "
-                        f"**{formato_factor(factor)} veces más limpio**: la ventaja de reloj no "
-                        f"se traslada por completo a las emisiones (secc 5.1)."
+                        f"But time tells a different story: `{mejor.algoritmo}` is "
+                        f"**{formato_factor(factor_tiempo)} times faster** yet only "
+                        f"**{formato_factor(factor)} times cleaner**: the clock advantage does "
+                        f"not carry over fully to emissions (section 5.1)."
                     )
                 else:
                     partes.append(
-                        f"El contraste con el tiempo es aún mayor en emisiones: "
-                        f"`{mejor.algoritmo}` es {formato_factor(factor_tiempo)} veces más "
-                        f"rápido pero {formato_factor(factor)} veces más limpio."
+                        f"The contrast with time is even larger in emissions: "
+                        f"`{mejor.algoritmo}` is {formato_factor(factor_tiempo)} times "
+                        f"faster but {formato_factor(factor)} times cleaner."
                     )
                 partes.append("")
 
-        # Inversión del orden: si el algoritmo más limpio en el tamaño más chico no es el
-        # más limpio en el más grande, la conclusión depende de la escala y hay que decirlo.
+        # Order reversal: if the cleanest algorithm at the smallest size is not the cleanest
+        # at the largest, the conclusion depends on scale and that must be stated.
         n_min = datos.n.min()
         en_min = datos[datos.n == n_min].sort_values("co2_kg_mean")
         if len(en_min) >= 2 and n_min != n_max:
@@ -208,37 +204,37 @@ def seccion_experimento(
                         / mejor_min.co2_kg_mean
                     )
                     partes.append(
-                        f"**El orden se invierte con el tamaño.** En "
-                        f"{exp.unidad_n} = {formato_numero(int(n_min), 0)} el más limpio no es "
-                        f"`{mejor.algoritmo}` sino `{mejor_min.algoritmo}`: ahí "
-                        f"`{mejor.algoritmo}` emite {formato_factor(factor_invertido)} veces "
-                        f"**más**. Es decir que la respuesta a «cuál conviene» depende de la "
-                        f"escala de trabajo, no sólo del algoritmo."
+                        f"**The order reverses with size.** At "
+                        f"{exp.unidad_n} = {formato_numero(int(n_min), 0)} the cleanest is not "
+                        f"`{mejor.algoritmo}` but `{mejor_min.algoritmo}`: there "
+                        f"`{mejor.algoritmo}` emits {formato_factor(factor_invertido)} times "
+                        f"**more**. In other words, the answer to “which one is better” depends "
+                        f"on the working scale, not only on the algorithm."
                     )
                     partes.append("")
 
     calidad = (metadatos or {}).get("calidad_knn") or {}
     if calidad and clave == "aprendizaje_knn":
         partes.append(
-            "**Calidad del modelo.** La comparación es entre implementaciones equivalentes, no "
-            "entre modelos distintos: las tres variantes devuelven las mismas predicciones y "
-            "por lo tanto la misma exactitud. Se informa para dejar constancia de que el "
-            "trabajo medido es un modelo que efectivamente aprende, y no un cómputo vacío.\n\n"
+            "**Model quality.** The comparison is between equivalent implementations, not "
+            "between different models: the three variants return the same predictions and "
+            "therefore the same accuracy. It is reported to show that the measured work is a "
+            "model that actually learns, and not an empty computation.\n\n"
             + tabla_markdown(
                 [
                     [formato_numero(int(n), 0), formato_numero(float(valor) * 100, 2) + "%"]
                     for n, valor in sorted(calidad.items(), key=lambda par: int(par[0]))
                 ],
-                ["muestras", "exactitud sobre el conjunto de prueba"],
+                ["samples", "accuracy on the test set"],
             )
         )
         partes.append("")
 
     if exp.descripciones:
-        partes.append("**Qué significa cada algoritmo.**")
+        partes.append("**What each algorithm means.**")
         partes.append("")
-        # En el orden en que las declara el experimento, no el alfabético de la tabla: las
-        # descripciones están escritas para leerse en ese orden.
+        # In the order the experiment declares them, not the alphabetical order of the
+        # table: the descriptions are written to be read in that order.
         medidos = set(str(x) for x in datos.algoritmo.unique())
         for algoritmo, descripcion in exp.descripciones.items():
             if algoritmo in medidos:
@@ -252,7 +248,7 @@ def seccion_experimento(
 
 
 def generar(resumen: pd.DataFrame, metadatos: dict[str, Any], rutas: dict[str, str]) -> str:
-    """Arma el informe completo y lo escribe en `INFORME.md`."""
+    """Builds the full report and writes it to `INFORME.md`."""
     mediciones = (
         pd.read_csv(config.CSV_SIMULACION) if config.CSV_SIMULACION.exists() else None
     )
@@ -265,38 +261,38 @@ def generar(resumen: pd.DataFrame, metadatos: dict[str, Any], rutas: dict[str, s
     p: list[str] = []
     a = p.append
 
-    # ---------------------------------------------------------------- portada
-    a("# Medición de la huella de carbono de algoritmos en Python")
+    # ---------------------------------------------------------------- title page
+    a("# Measuring the carbon footprint of Python algorithms")
     a("")
     a("**Green Software — Universidad Tecnológica Nacional - FRC**")
     a("")
-    a(f"Fecha de la corrida: {metadatos['fecha']}")
+    a(f"Run date: {metadatos['fecha']}")
     a("")
-    a("> Todas las cifras de este informe salen de las mediciones registradas en la corrida")
-    a("> indicada arriba. Ninguna fue escrita a mano ni tomada de otra fuente.")
+    a("> Every figure in this report comes from the measurements recorded in the run")
+    a("> shown above. None was written by hand or taken from another source.")
     a("")
     a("---")
     a("")
 
-    # ---------------------------------------------------------------- objetivo
-    a("## 1. Objetivo e hipótesis")
+    # ---------------------------------------------------------------- objective
+    a("## 1. Objective and hypothesis")
     a("")
-    a("**Objetivo.** Medir la huella de carbono asociada a la ejecución de algoritmos en")
-    a("Python y determinar si las decisiones de diseño algorítmico tienen una consecuencia")
-    a("ambiental cuantificable.")
+    a("**Objective.** To measure the carbon footprint associated with running algorithms in")
+    a("Python and to determine whether algorithmic design decisions have a quantifiable")
+    a("environmental consequence.")
     a("")
-    a("**Hipótesis.** Dos implementaciones que producen exactamente el mismo resultado")
-    a("pueden diferir en órdenes de magnitud en energía consumida y, por lo tanto, en CO₂")
-    a("emitido. La complejidad computacional no es solo una propiedad teórica: se traduce")
-    a("en consumo eléctrico y en emisiones.")
+    a("**Hypothesis.** Two implementations that produce exactly the same result can differ")
+    a("by orders of magnitude in the energy they consume and, therefore, in the CO₂ they")
+    a("emit. Computational complexity is not just a theoretical property: it translates")
+    a("into electricity consumption and emissions.")
     a("")
     cantidad = len([c for c in EXPERIMENTOS if c in presentes])
-    nombres_cantidad = {1: "Un experimento", 2: "Dos experimentos", 3: "Tres experimentos",
-                        4: "Cuatro experimentos", 5: "Cinco experimentos"}
-    a(f"**Diseño experimental.** {nombres_cantidad.get(cantidad, f'{cantidad} experimentos')}, "
-      "cada uno con variantes que resuelven el")
-    a("mismo problema y devuelven el mismo resultado (equivalencia verificada por")
-    a("aserción antes de cada medición):")
+    nombres_cantidad = {1: "One experiment", 2: "Two experiments", 3: "Three experiments",
+                        4: "Four experiments", 5: "Five experiments"}
+    a(f"**Experimental design.** {nombres_cantidad.get(cantidad, f'{cantidad} experiments')}, "
+      "each with variants that solve the")
+    a("same problem and return the same result (equivalence verified by assertion")
+    a("before each measurement):")
     a("")
     for clave, exp in EXPERIMENTOS.items():
         if clave in set(resumen.experimento.unique()):
@@ -304,104 +300,104 @@ def generar(resumen: pd.DataFrame, metadatos: dict[str, Any], rutas: dict[str, s
             a(f"- **{exp.titulo}** — {variantes}")
     a("")
 
-    # ---------------------------------------------------------------- marco teórico
-    a("## 2. Marco teórico")
+    # ---------------------------------------------------------------- theoretical framework
+    a("## 2. Theoretical framework")
     a("")
-    a("La huella de carbono de un cómputo se obtiene multiplicando la energía eléctrica")
-    a("consumida por la intensidad de carbono de la red que la suministra:")
+    a("The carbon footprint of a computation is obtained by multiplying the electrical")
+    a("energy consumed by the carbon intensity of the grid that supplies it:")
     a("")
     a("```")
-    a("CO₂ [kgCO₂eq]  =  E [kWh]  ×  FE [kgCO₂eq/kWh]  ×  PUE")
+    a("CO₂ [kgCO₂eq]  =  E [kWh]  ×  EF [kgCO₂eq/kWh]  ×  PUE")
     a("```")
     a("")
-    a("donde FE es el factor de emisión de la red eléctrica y PUE (*Power Usage")
-    a("Effectiveness*) contabiliza la infraestructura de soporte, como la refrigeración de")
-    a("un datacenter.")
+    a("where EF is the emission factor of the power grid and PUE (*Power Usage")
+    a("Effectiveness*) accounts for the supporting infrastructure, such as the cooling of")
+    a("a data center.")
     a("")
-    a("### Factor de emisión de la red argentina")
+    a("### Emission factor of the Argentine grid")
     a("")
-    a(f"Se adopta **FE = {formato_numero(config.FACTOR_EMISION_AR_G_KWH, 1)} gCO₂eq/kWh = "
-      f"{formato_numero(config.FACTOR_EMISION_AR, 3)} kgCO₂eq/kWh**, correspondiente a "
-      f"{config.ANIO_FACTOR_EMISION}, el año más reciente disponible para Argentina.")
+    a(f"The adopted value is **EF = {formato_numero(config.FACTOR_EMISION_AR_G_KWH, 1)} gCO₂eq/kWh = "
+      f"{formato_numero(config.FACTOR_EMISION_AR, 3)} kgCO₂eq/kWh**, corresponding to "
+      f"{config.ANIO_FACTOR_EMISION}, the most recent year available for Argentina.")
     a("")
-    a(f"Fuente: {config.FUENTE_FACTOR_EMISION}")
-    a(f"(<{config.INTENSIDAD_CARBONO['url']}>, descargado el "
-      f"{config.INTENSIDAD_CARBONO['descargado']}). El indicador es la")
-    a(f"*{config.INTENSIDAD_CARBONO['indicador'].lower()}*. La serie completa está")
-    a(f"versionada en `datos/{config.ARCHIVO_INTENSIDAD_CARBONO.name}` y el proyecto")
-    a("selecciona el último año disponible en cada corrida, de modo que el valor no puede")
-    a("quedar desactualizado ni escrito a mano.")
+    a(f"Source: {config.FUENTE_FACTOR_EMISION}")
+    a(f"(<{config.INTENSIDAD_CARBONO['url']}>, downloaded on "
+      f"{config.INTENSIDAD_CARBONO['descargado']}). The indicator is the")
+    a(f"*{config.INTENSIDAD_CARBONO['indicador'].lower()}*. The full series is")
+    a(f"versioned in `datos/{config.ARCHIVO_INTENSIDAD_CARBONO.name}` and the project")
+    a("selects the latest available year on every run, so the value can neither go")
+    a("out of date nor be written by hand.")
     a("")
-    a("Evolución reciente de la intensidad de carbono de la red argentina:")
+    a("Recent evolution of the carbon intensity of the Argentine grid:")
     a("")
     serie = config.INTENSIDAD_CARBONO["serie_g_kwh"]
     ultimos = sorted(serie, key=int)[-6:]
     a(
         tabla_markdown(
             [[anio, f"{formato_numero(serie[anio], 2)}"] for anio in ultimos],
-            ["Año", "gCO₂eq/kWh"],
+            ["Year", "gCO₂eq/kWh"],
         )
     )
     a("")
-    a("**Por qué no se usa el factor que trae la herramienta de medición.** CodeCarbon")
-    a("incluye su propia tabla de factores por país, pero para Argentina está congelada en")
-    a(f"{config.ANIO_FACTOR_EMISION_CODECARBON}: {formato_numero(config.FACTOR_EMISION_CODECARBON_G_KWH, 3)} gCO₂eq/kWh, incluso en la última")
-    a(f"versión publicada de la herramienta ({metadatos.get('codecarbon', 'n/d')}). Ese valor")
-    a(f"es un {formato_numero(abs(config.FACTOR_EMISION_CODECARBON_G_KWH / config.FACTOR_EMISION_AR_G_KWH - 1) * 100, 1)}% superior al de "
-      f"{config.ANIO_FACTOR_EMISION} y quedaría desactualizado.")
+    a("**Why the factor bundled with the measurement tool is not used.** CodeCarbon")
+    a("ships its own table of factors per country, but for Argentina it is frozen at")
+    a(f"{config.ANIO_FACTOR_EMISION_CODECARBON}: {formato_numero(config.FACTOR_EMISION_CODECARBON_G_KWH, 3)} gCO₂eq/kWh, even in the latest")
+    a(f"published version of the tool ({metadatos.get('codecarbon', 'n/a')}). That value")
+    a(f"is {formato_numero(abs(config.FACTOR_EMISION_CODECARBON_G_KWH / config.FACTOR_EMISION_AR_G_KWH - 1) * 100, 1)}% higher than the "
+      f"{config.ANIO_FACTOR_EMISION} figure and would be out of date.")
     a("")
-    a("Por eso este informe toma la energía que mide la herramienta y la convierte a CO₂")
-    a(f"con el factor de {config.ANIO_FACTOR_EMISION}, el más reciente disponible. La cifra que la")
-    a("herramienta calcularía con su propia tabla también queda registrada en los datos de la")
-    a("corrida, para que la diferencia sea verificable.")
+    a("That is why this report takes the energy measured by the tool and converts it to CO₂")
+    a(f"with the {config.ANIO_FACTOR_EMISION} factor, the most recent available. The figure the")
+    a("tool would compute with its own table is also recorded in the run data, so that the")
+    a("difference can be verified.")
     a("")
     oficial = config.REFERENCIA_FACTOR_OFICIAL
     if oficial:
-        a(f"Como contraste adicional, la {oficial['organismo']} publica un factor de emisión")
-        a(f"de la red con metodología {oficial['metodologia']}: su último valor disponible es")
-        a(f"**{formato_numero(oficial['valor_g_kwh'], 1)} gCO₂eq/kWh** para {oficial['anio']}")
-        a(f"(<{oficial['url']}>, archivo `{oficial['archivo']}`, descargado el {oficial['descargado']}).")
-        a("No se adopta acá porque es un factor marginal, pensado para evaluar proyectos, y no")
-        a("una intensidad media de la red como la que corresponde a atribuir el consumo de un")
-        a(f"proceso cualquiera. Su cercanía con el valor adoptado "
-          f"({formato_numero(abs(oficial['valor_g_kwh'] / config.FACTOR_EMISION_AR_G_KWH - 1) * 100, 1)}% de diferencia) "
-          f"sirve igual como verificación de orden de magnitud.")
+        a(f"As an additional cross-check, {oficial['organismo']} publishes a grid emission factor")
+        a(f"using the {oficial['metodologia']} methodology: its latest available value is")
+        a(f"**{formato_numero(oficial['valor_g_kwh'], 1)} gCO₂eq/kWh** for {oficial['anio']}")
+        a(f"(<{oficial['url']}>, file `{oficial['archivo']}`, downloaded on {oficial['descargado']}).")
+        a("It is not adopted here because it is a marginal factor, intended for project")
+        a("evaluation, and not an average grid intensity, which is what applies when")
+        a(f"attributing the consumption of an arbitrary process. Its closeness to the adopted value "
+          f"({formato_numero(abs(oficial['valor_g_kwh'] / config.FACTOR_EMISION_AR_G_KWH - 1) * 100, 1)}% difference) "
+          f"nonetheless serves as an order-of-magnitude check.")
         a("")
     fosil_pct = matriz["fossil_TWh"] / matriz["total_TWh"] * 100
-    a("El orden de magnitud del factor se explica por la composición de la matriz")
-    a(f"eléctrica argentina en {matriz['anio']}, el último año con desglose por fuente en los")
-    a(f"datos que acompañan a CodeCarbon: sobre un total de {formato_numero(matriz['total_TWh'], 1)} TWh generados,")
-    a(f"**{formato_numero(fosil_pct, 1)}% proviene de fuentes fósiles** "
-      f"(gas {formato_numero(matriz['gas_TWh'], 1)} TWh, petróleo {formato_numero(matriz['oil_TWh'], 1)} TWh, "
-      f"carbón {formato_numero(matriz['coal_TWh'], 1)} TWh), frente a "
-      f"{formato_numero(matriz['hydroelectricity_TWh'], 1)} TWh de hidroelectricidad, "
-      f"{formato_numero(matriz['nuclear_TWh'], 1)} TWh de nuclear, "
-      f"{formato_numero(matriz['wind_TWh'], 1)} TWh de eólica y {formato_numero(matriz['solar_TWh'], 1)} TWh de solar.")
+    a("The order of magnitude of the factor is explained by the composition of the Argentine")
+    a(f"electricity mix in {matriz['anio']}, the latest year with a breakdown by source in the")
+    a(f"data shipped with CodeCarbon: out of a total of {formato_numero(matriz['total_TWh'], 1)} TWh generated,")
+    a(f"**{formato_numero(fosil_pct, 1)}% comes from fossil sources** "
+      f"(gas {formato_numero(matriz['gas_TWh'], 1)} TWh, oil {formato_numero(matriz['oil_TWh'], 1)} TWh, "
+      f"coal {formato_numero(matriz['coal_TWh'], 1)} TWh), compared with "
+      f"{formato_numero(matriz['hydroelectricity_TWh'], 1)} TWh of hydroelectric, "
+      f"{formato_numero(matriz['nuclear_TWh'], 1)} TWh of nuclear, "
+      f"{formato_numero(matriz['wind_TWh'], 1)} TWh of wind and {formato_numero(matriz['solar_TWh'], 1)} TWh of solar power.")
     a("")
-    a("Consecuencia relevante para el análisis: **el mismo algoritmo tiene distinta huella")
-    a("según dónde se ejecute**. Corriéndolo en una red mayormente hidroeléctrica o")
-    a("nuclear, las emisiones serían una fracción de las calculadas acá.")
+    a("A relevant consequence for the analysis: **the same algorithm has a different footprint")
+    a("depending on where it runs**. Running it on a mostly hydroelectric or nuclear grid,")
+    a("emissions would be a fraction of those calculated here.")
     a("")
-    a(f"Se usa **PUE = {formato_numero(config.PUE, 1)}** porque el experimento corre en una notebook, sin")
-    a("infraestructura de refrigeración externa. En un datacenter el PUE típico está entre")
-    a("1,1 y 1,6 (rango de referencia de la industria, no medido en este trabajo), lo que")
-    a("multiplicaría todos los resultados por ese factor.")
+    a(f"**PUE = {formato_numero(config.PUE, 1)}** is used because the experiment runs on a laptop, with no")
+    a("external cooling infrastructure. In a data center the typical PUE is between")
+    a("1.1 and 1.6 (an industry reference range, not measured in this work), which")
+    a("would multiply all results by that factor.")
     a("")
 
-    # ---------------------------------------------------------------- metodología
-    a("## 3. Metodología")
+    # ---------------------------------------------------------------- methodology
+    a("## 3. Methodology")
     a("")
-    a("### 3.1 Entorno de medición")
+    a("### 3.1 Measurement environment")
     a("")
     a(
         tabla_markdown(
             [
-                ["Plataforma", metadatos["plataforma"]],
-                ["Procesador", f"{cc.get('cpu_model', metadatos['procesador'])}"],
+                ["Platform", metadatos["plataforma"]],
+                ["Processor", f"{cc.get('cpu_model', metadatos['procesador'])}"],
                 [
-                    "Núcleos",
-                    f"{metadatos['cpu_nucleos_logicos']} lógicos / "
-                    f"{metadatos['cpu_nucleos_fisicos']} físicos",
+                    "Cores",
+                    f"{metadatos['cpu_nucleos_logicos']} logical / "
+                    f"{metadatos['cpu_nucleos_fisicos']} physical",
                 ],
                 ["RAM", f"{formato_numero(metadatos['ram_total_gb'], 1)} GB"],
                 ["Python", metadatos["python"]],
@@ -409,170 +405,170 @@ def generar(resumen: pd.DataFrame, metadatos: dict[str, Any], rutas: dict[str, s
                 ["CodeCarbon", metadatos["codecarbon"]],
                 ["scikit-learn", metadatos.get("scikit_learn", "—")],
                 [
-                    "Núcleos que puede usar la biblioteca numérica",
+                    "Cores available to the numerical library",
                     ", ".join(
                         str(h["hilos"]) for h in metadatos.get("hilos_blas", [])
                     )
-                    or "sin límite declarado",
+                    or "no declared limit",
                 ],
-                ["Entorno", "versiones exactas fijadas, para que la corrida sea repetible"],
-                ["Semilla aleatoria", str(metadatos["semilla"])],
-                ["Repeticiones por punto", str(metadatos["repeticiones"])],
+                ["Environment", "exact versions pinned, so that the run is repeatable"],
+                ["Random seed", str(metadatos["semilla"])],
+                ["Repetitions per point", str(metadatos["repeticiones"])],
             ],
-            ["Parámetro", "Valor"],
+            ["Parameter", "Value"],
         )
     )
     a("")
-    a("### 3.2 Protocolo de medición")
+    a("### 3.2 Measurement protocol")
     a("")
-    a("Cada punto de medición es una combinación de algoritmo y tamaño de entrada, y")
-    a("corresponde a una fila de las tablas de secc 4. Con cuatro experimentos y sus variantes")
-    a(f"son {len(resumen)} puntos. Cada uno se mide así:")
+    a("Each measurement point is a combination of algorithm and input size, and")
+    a("corresponds to one row of the tables in section 4. With four experiments and their variants")
+    a(f"there are {len(resumen)} points. Each one is measured as follows:")
     a("")
-    a("1. **Se verifica la equivalencia.** Antes de medir se comprueba por aserción que todas")
-    a("   las variantes del experimento devuelvan el mismo resultado. Comparar la huella de")
-    a("   algoritmos que no resuelven lo mismo no tendría validez.")
-    a("2. **Se calcula el tamaño del lote.** Varios de estos algoritmos terminan en")
-    a("   millonésimas de segundo, mucho menos de lo que tarda un sensor en dar una lectura")
-    a("   de consumo, así que no se mide una ejecución aislada: se mide un **lote de K")
-    a(f"   ejecuciones seguidas**, con K elegido para que el lote dure al menos "
-      f"{formato_numero(metadatos.get('ventana_medicion_s', config.DURACION_MINIMA_LOTE_S), 1)} s (secc 3.4).")
-    a("   K se calcula con una corrida de prueba previa, que además funciona como")
-    a("   calentamiento: la primera ejecución de un algoritmo siempre es más lenta que las")
-    a("   siguientes.")
-    a("3. **Se mide el lote y se divide por K.** Lo que se informa es entonces el costo de")
-    a("   *una* ejecución, aunque nunca se haya medido una sola por separado. Cuando un")
-    a("   algoritmo ya dura más que la ventana por sí solo, como el entrenamiento del modelo")
-    a("   en los tamaños grandes, K queda en 1.")
-    a(f"4. **Se repite {metadatos['repeticiones']} veces** y se informan el promedio y la dispersión entre esas")
-    a(f"   {metadatos['repeticiones']} mediciones.")
+    a("1. **Equivalence is verified.** Before measuring, an assertion checks that all")
+    a("   variants of the experiment return the same result. Comparing the footprint of")
+    a("   algorithms that do not solve the same problem would not be valid.")
+    a("2. **The batch size is computed.** Several of these algorithms finish in")
+    a("   microseconds, far less than a sensor needs to produce a power")
+    a("   reading, so a single isolated run is not measured: what is measured is a **batch of K")
+    a(f"   consecutive runs**, with K chosen so that the batch lasts at least "
+      f"{formato_numero(metadatos.get('ventana_medicion_s', config.DURACION_MINIMA_LOTE_S), 1)} s (section 3.4).")
+    a("   K is computed with a preliminary trial run, which also serves as a")
+    a("   warm-up: the first run of an algorithm is always slower than the")
+    a("   following ones.")
+    a("3. **The batch is measured and divided by K.** What is reported is therefore the cost of")
+    a("   *one* run, even though no single run was ever measured on its own. When an")
+    a("   algorithm already lasts longer than the window by itself, as model training does")
+    a("   at the larger sizes, K stays at 1.")
+    a(f"4. **It is repeated {metadatos['repeticiones']} times** and the mean and spread across those")
+    a(f"   {metadatos['repeticiones']} measurements are reported.")
     a("")
-    a("Un ejemplo concreto de esta corrida, para fijar la idea: el algoritmo más rápido del")
+    a("A concrete example from this run, to make the idea tangible: the fastest algorithm in")
     ejemplo = None
     if mediciones is not None and "ejecuciones_lote" in mediciones:
         fila = mediciones.loc[mediciones.ejecuciones_lote.idxmax()]
         ejemplo = (str(fila.algoritmo), int(fila.n), int(fila.ejecuciones_lote))
     if ejemplo:
         nombre_alg, n_alg, lote_alg = ejemplo
-        a(f"banco, `{nombre_alg}`, se midió en lotes de "
-          f"{formato_numero(lote_alg, 0)} ejecuciones; con "
-          f"{metadatos['repeticiones']} repeticiones,")
-        a(f"detrás de esa fila de la tabla hay "
-          f"{formato_numero(lote_alg * int(metadatos['repeticiones']), 0)} ejecuciones reales del algoritmo.")
+        a(f"the benchmark, `{nombre_alg}`, was measured in batches of "
+          f"{formato_numero(lote_alg, 0)} runs; with "
+          f"{metadatos['repeticiones']} repetitions,")
+        a(f"behind that row of the table there are "
+          f"{formato_numero(lote_alg * int(metadatos['repeticiones']), 0)} actual runs of the algorithm.")
     a("")
 
-    a("### 3.3 Otra opción de cálculo: un modelo propio")
+    a("### 3.3 Another way to calculate: a custom model")
     a("")
-    a("Existe una alternativa a usar una herramienta de medición: deducir la potencia a")
-    a("partir de cuánto procesador usa el algoritmo, y atribuirle sólo el consumo adicional")
-    a("que provoca. La cadena de cálculo sería:")
+    a("There is an alternative to using a measurement tool: deriving power from how much")
+    a("processor the algorithm uses, and attributing to it only the additional consumption")
+    a("it causes. The calculation chain would be:")
     a("")
     a("```")
-    a("uso del procesador  =  tiempo de cálculo consumido / (tiempo transcurrido × núcleos)")
-    a("potencia atribuida  =  (potencia máxima − potencia en reposo) × uso  +  memoria × W/GB")
-    a("energía             =  potencia × tiempo")
-    a("huella              =  energía × factor de emisión × PUE")
+    a("processor usage     =  CPU time consumed / (elapsed time × cores)")
+    a("attributed power    =  (maximum power − idle power) × usage  +  memory × W/GB")
+    a("energy              =  power × time")
+    a("footprint           =  energy × emission factor × PUE")
     a("```")
     a("")
-    a("Requiere tres parámetros del equipo donde se corre: la potencia en reposo, la")
-    a("potencia con todos los núcleos ocupados y el consumo de la memoria por GB")
-    a("usado. Los dos primeros hay que medirlos con un sensor de consumo; suponerlos vuelve")
-    a("el resultado tan discutible como la suposición.")
+    a("It requires three parameters of the machine it runs on: idle power, power with")
+    a("all cores busy, and memory consumption per GB used. The first two")
+    a("must be measured with a power sensor; assuming them makes the result as")
+    a("debatable as the assumption itself.")
     a("")
-    a("**Se menciona como opción y nada más: este trabajo no la implementa.** Todo lo que")
-    a("sigue proviene de la vía que sí se desarrolla.")
+    a("**It is mentioned as an option and nothing more: this work does not implement it.**")
+    a("Everything that follows comes from the approach that is actually developed.")
     a("")
 
-    a("### 3.4 La vía de este trabajo: CodeCarbon")
+    a("### 3.4 The approach of this work: CodeCarbon")
     a("")
-    a("CodeCarbon es la herramienta de referencia en la industria para medir la huella de")
-    a("carbono del software. Todas las cifras de secc 4 y secc 5 salen de acá. Se la usó con")
-    a("tres criterios:")
+    a("CodeCarbon is the industry reference tool for measuring the carbon footprint of")
+    a("software. Every figure in sections 4 and 5 comes from it. It was used according to")
+    a("three criteria:")
     a("")
-    a("- **El país se declara, no se deduce.** La herramienta puede averiguarlo a partir de")
-    a("  la conexión a internet, pero eso ataría el resultado a la red desde la que se corre")
-    a("  y a un momento determinado. Acá se fija Argentina de entrada, y la corrida queda")
-    a("  repetible.")
+    a("- **The country is declared, not inferred.** The tool can work it out from the")
+    a("  internet connection, but that would tie the result to the network it is run from")
+    a("  and to a particular moment. Here Argentina is set up front, and the run stays")
+    a("  repeatable.")
     deteccion_s = cc.get("segundos_deteccion_hardware")
-    a("- **Una sola sesión de medición para todo el benchmark.** Poner en marcha la")
-    a("  herramienta lleva un tiempo, porque antes reconoce el equipo:")
+    a("- **A single measurement session for the whole benchmark.** Starting the tool")
+    a("  takes time, because it first identifies the hardware:")
     if deteccion_s is not None:
-        a(f"  {formato_numero(deteccion_s, 1)} s en esta corrida. Si se la arrancara y detuviera en cada medición, ese")
+        a(f"  {formato_numero(deteccion_s, 1)} s in this run. If it were started and stopped for every measurement, that")
     else:
-        a("  se midió en esta corrida. Si se la arrancara y detuviera en cada medición, ese")
-    a("  tiempo caería dentro de lo medido y arruinaría cualquier medición de milésimas de")
-    a("  segundo. Se abre una sola vez y cada algoritmo se mide como una tarea dentro de esa")
-    a("  sesión.")
-    a("- **La potencia se mide, y sólo se estima cuando el equipo no permite medirla.** Es la")
-    a("  decisión de mayor peso sobre los resultados, y por eso tiene su propia sección")
-    a("  (secc 5.2). Hay equipos que exponen un sensor del consumo real del procesador; donde")
-    a("  existe y está accesible, la potencia se lee de ahí. Donde no, la herramienta la")
-    a("  calcula con una fórmula. Este software puede correr en otra máquina: el camino")
-    a("  se decide en cada corrida según lo que ese equipo permita, y el informe declara cuál")
-    a("  se usó en lugar de darlo por supuesto.")
+        a("  this was measured in this run. If it were started and stopped for every measurement, that")
+    a("  time would fall inside what is measured and would ruin any measurement in the")
+    a("  millisecond range. It is opened only once and each algorithm is measured as a task within")
+    a("  that session.")
+    a("- **Power is measured, and only estimated when the machine does not allow measuring it.**")
+    a("  This is the decision with the greatest weight on the results, which is why it has its")
+    a("  own section (section 5.2). Some machines expose a sensor of the processor's actual")
+    a("  power draw; where it exists and is accessible, power is read from it. Where not, the")
+    a("  tool calculates it with a formula. This software can run on another machine: the path")
+    a("  is decided on each run according to what that machine allows, and the report states which")
+    a("  one was used instead of taking it for granted.")
     a("")
     lectura_directa = cc.get("lectura_directa")
     if lectura_directa:
-        a("**En esta corrida la potencia se midió con el sensor del equipo.** Los valores de")
-        a("CO₂ que siguen se apoyan, por lo tanto, en un consumo real y no en una estimación.")
+        a("**In this run, power was measured with the machine's sensor.** The CO₂ values that")
+        a("follow therefore rest on actual consumption and not on an estimate.")
     else:
-        a("**En esta corrida el equipo no permitió medir la potencia, así que se estimó.** Los")
-        a("valores absolutos de CO₂ que siguen hay que leerlos con la salvedad que explica")
-        a("secc 5.2.")
+        a("**In this run the machine did not allow measuring power, so it was estimated.** The")
+        a("absolute CO₂ values that follow must be read with the caveat explained in")
+        a("section 5.2.")
     a("")
     if cc.get("requiere_ventana_muestreo"):
-        a("Medir el consumo real tiene una exigencia adicional sobre el protocolo: la lectura")
-        a("tiene que tomarse mientras el algoritmo está trabajando. Por eso los lotes de secc 3.2")
-        a(f"se dimensionan para durar al menos {formato_numero(config.DURACION_MINIMA_LOTE_MUESTREO_S, 1)} s, en lugar de los")
-        a(f"{formato_numero(config.DURACION_MINIMA_LOTE_S, 1)} s que bastarían para cronometrar. Con ventanas más cortas la lectura")
-        a("llega cuando el trabajo ya terminó, y el consumo informado queda inflado.")
+        a("Measuring actual consumption places an additional demand on the protocol: the reading")
+        a("has to be taken while the algorithm is working. That is why the batches in section 3.2")
+        a(f"are sized to last at least {formato_numero(config.DURACION_MINIMA_LOTE_MUESTREO_S, 1)} s, instead of the")
+        a(f"{formato_numero(config.DURACION_MINIMA_LOTE_S, 1)} s that would suffice for timing. With shorter windows the reading")
+        a("arrives after the work has finished, and the reported consumption is inflated.")
         a("")
-    # ---------------------------------------------------------------- resultados
-    a("## 4. Resultados")
+    # ---------------------------------------------------------------- results
+    a("## 4. Results")
     a("")
-    a("### 4.0 Cómo leer las tablas")
+    a("### 4.0 How to read the tables")
     a("")
-    a(f"**Cada fila es un punto de medición** (secc 3.2) y los valores son el promedio de sus")
-    a(f"{metadatos['repeticiones']} mediciones, expresados por ejecución del algoritmo.")
+    a(f"**Each row is a measurement point** (section 3.2) and the values are the mean of its")
+    a(f"{metadatos['repeticiones']} measurements, expressed per run of the algorithm.")
     a("")
     a(
         tabla_markdown(
             [
-                ["`n`", "tamaño de la entrada, en las unidades que declara cada experimento"],
+                ["`n`", "input size, in the units declared by each experiment"],
                 [
-                    "`algoritmo`",
-                    "la variante medida; todas las del experimento devuelven el mismo resultado",
+                    "`algorithm`",
+                    "the measured variant; all variants of the experiment return the same result",
                 ],
-                ["`complejidad`", "la complejidad teórica del algoritmo"],
-                ["`tiempo [s]`", "cuánto tarda una ejecución"],
+                ["`complexity`", "the theoretical complexity of the algorithm"],
+                ["`time [s]`", "how long one run takes"],
                 [
-                    "`energía [kWh]`",
-                    "cuánta electricidad consume una ejecución. Es la magnitud que se mide (secc 3.4)",
+                    "`energy [kWh]`",
+                    "how much electricity one run consumes. This is the quantity being measured (section 3.4)",
                 ],
                 [
                     "`CO₂ [kg]`",
-                    f"esa energía convertida a emisiones con el factor de "
-                    f"{formato_numero(config.FACTOR_EMISION_AR, 3)} kgCO₂eq/kWh de secc 2",
+                    f"that energy converted to emissions with the "
+                    f"{formato_numero(config.FACTOR_EMISION_AR, 3)} kgCO₂eq/kWh factor from section 2",
                 ],
                 [
-                    "`disp.`",
-                    "cuánto difieren entre sí las repeticiones del punto: el desvío estándar "
-                    "como porcentaje del promedio",
+                    "`spread`",
+                    "how much the repetitions of the point differ from each other: the standard "
+                    "deviation as a percentage of the mean",
                 ],
             ],
-            ["Columna", "Qué es"],
+            ["Column", "What it is"],
         )
     )
     a("")
-    a("Sobre la dispersión: por debajo del 1% la medición es reproducible. Un valor alto no")
-    a("invalida el promedio, y puede venir de dos lados: de las variantes que reparten su")
-    a("trabajo entre varios núcleos, donde cuántos se activan cambia de una repetición a")
-    a("otra, o del tiempo que consume tomar la lectura de consumo (secc 5.2), que pesa más en los")
-    a("algoritmos más rápidos.")
+    a("On spread: below 1% the measurement is reproducible. A high value does not")
+    a("invalidate the mean, and it can come from two places: from the variants that split their")
+    a("work across several cores, where how many get activated changes from one repetition to")
+    a("the next, or from the time it takes to read the power consumption (section 5.2), which weighs more on the")
+    a("fastest algorithms.")
     a("")
-    # Ejemplo trabajado sobre una fila real de la corrida: es la única forma de que quede
-    # sin ambigüedad qué representa cada número, y al derivarse de los datos no puede
-    # quedar desfasado.
+    # Worked example on an actual row of the run: it is the only way to make unambiguous
+    # what each number represents, and since it is derived from the data it cannot get
+    # out of date.
     if mediciones is not None and not resumen.empty:
         clave_1 = next((c for c in EXPERIMENTOS if c in presentes), None)
         datos_1 = resumen[resumen.experimento == clave_1].sort_values(["n", "algoritmo"])
@@ -583,28 +579,28 @@ def generar(resumen: pd.DataFrame, metadatos: dict[str, Any], rutas: dict[str, s
             ]
             lote = int(reps.ejecuciones_lote.iloc[0]) if not reps.empty else 1
             unidad = EXPERIMENTOS[str(clave_1)].unidad_n
-            a("**Qué dice exactamente una fila.** Tomando la primera del primer experimento")
-            a(f"(`{f.algoritmo}`, {unidad} = {formato_numero(int(f.n), 0)}), cada número significa esto:")
+            a("**What a row says, exactly.** Taking the first row of the first experiment")
+            a(f"(`{f.algoritmo}`, {unidad} = {formato_numero(int(f.n), 0)}), each number means the following:")
             a("")
-            a(f"- **`n` = {formato_numero(int(f.n), 0)}**: la entrada sobre la que se corrió tenía ese tamaño.")
-            a(f"- **`complejidad` = {f.complejidad}**: etiqueta teórica declarada por el proyecto. No se")
-            a("  midió ni se derivó de los datos.")
-            a(f"- **`tiempo [s]` = {formato_cientifico(f.tiempo_s_mean)}**: se ejecutó el algoritmo")
-            a(f"  {formato_numero(lote, 0)} veces seguidas y se cronometró el conjunto; el total se dividió por")
-            a(f"  {formato_numero(lote, 0)}. Eso se hizo {metadatos['repeticiones']} veces y se promediaron los "
-              f"{metadatos['repeticiones']} cocientes.")
-            a(f"- **`energía [kWh]` = {formato_cientifico(f.energia_kwh_mean)}**: durante esas mismas")
-            a(f"  {formato_numero(lote, 0)} ejecuciones se integró la potencia leída del procesador más la")
-            a(f"  atribuida a la memoria, sobre toda la ventana. El total se dividió por "
-              f"{formato_numero(lote, 0)} y se")
-            a(f"  promediaron las {metadatos['repeticiones']} mediciones.")
-            a(f"- **`CO₂ [kg]` = {formato_cientifico(f.co2_kg_mean)}**: la energía anterior multiplicada por")
-            a(f"  {formato_numero(config.FACTOR_EMISION_AR, 3)}. No es una medición independiente: es la misma cifra en otra unidad.")
+            a(f"- **`n` = {formato_numero(int(f.n), 0)}**: the input it was run on had that size.")
+            a(f"- **`complexity` = {f.complejidad}**: theoretical label declared by the project. It was")
+            a("  neither measured nor derived from the data.")
+            a(f"- **`time [s]` = {formato_cientifico(f.tiempo_s_mean)}**: the algorithm was run")
+            a(f"  {formato_numero(lote, 0)} times in a row and the whole set was timed; the total was divided by")
+            a(f"  {formato_numero(lote, 0)}. This was done {metadatos['repeticiones']} times and the "
+              f"{metadatos['repeticiones']} quotients were averaged.")
+            a(f"- **`energy [kWh]` = {formato_cientifico(f.energia_kwh_mean)}**: during those same")
+            a(f"  {formato_numero(lote, 0)} runs, the power read from the processor plus the power")
+            a(f"  attributed to memory was integrated over the whole window. The total was divided by "
+              f"{formato_numero(lote, 0)} and")
+            a(f"  the {metadatos['repeticiones']} measurements were averaged.")
+            a(f"- **`CO₂ [kg]` = {formato_cientifico(f.co2_kg_mean)}**: the energy above multiplied by")
+            a(f"  {formato_numero(config.FACTOR_EMISION_AR, 3)}. It is not an independent measurement: it is the same figure in another unit.")
             if len(reps) > 1:
                 valores = ", ".join(formato_cientifico(v) for v in reps.co2_kg)
-                a(f"- **`disp.` = ±{formato_numero(f.co2_kg_std / f.co2_kg_mean * 100, 1)}%**: el desvío estándar de los "
-                  f"{len(reps)} valores de CO₂ medidos")
-                a(f"  ({valores}), dividido por su promedio.")
+                a(f"- **`spread` = ±{formato_numero(f.co2_kg_std / f.co2_kg_mean * 100, 1)}%**: the standard deviation of the "
+                  f"{len(reps)} measured CO₂ values")
+                a(f"  ({valores}), divided by their mean.")
             a("")
 
     for clave in EXPERIMENTOS:
@@ -612,15 +608,15 @@ def generar(resumen: pd.DataFrame, metadatos: dict[str, Any], rutas: dict[str, s
         if seccion:
             a(seccion)
 
-    # ---------------------------------------------------------------- análisis
-    a("## 5. Análisis")
+    # ---------------------------------------------------------------- analysis
+    a("## 5. Analysis")
     a("")
-    a("### 5.1 Tiempo de ejecución como aproximación de la huella")
+    a("### 5.1 Execution time as a proxy for the footprint")
     a("")
     import numpy as np
 
     def ajuste_log_log(datos: pd.DataFrame) -> tuple[float, float, int]:
-        """Pendiente y R² del ajuste log-log de CO₂ contra tiempo, y cantidad de puntos."""
+        """Slope and R² of the log-log fit of CO₂ against time, and number of points."""
         x = datos.tiempo_s_mean.to_numpy(dtype=float)
         y = datos.co2_kg_mean.to_numpy(dtype=float)
         valido = (x > 0) & (y > 0)
@@ -634,46 +630,46 @@ def generar(resumen: pd.DataFrame, metadatos: dict[str, Any], rutas: dict[str, s
 
     pendiente, r2, _ = ajuste_log_log(resumen)
 
-    a(f"Sobre las {len(resumen)} configuraciones medidas, las emisiones resultan casi")
-    a(f"exactamente proporcionales al tiempo de ejecución: al relacionar ambas magnitudes, un")
-    a(f"algoritmo que tarda el doble emite {formato_numero(2 ** pendiente, 2)} veces más, y la relación")
-    a(f"explica el {formato_numero(r2 * 100, 2)}% de la variación observada.")
+    a(f"Across the {len(resumen)} configurations measured, emissions turn out to be almost")
+    a(f"exactly proportional to execution time: relating both quantities, an")
+    a(f"algorithm that takes twice as long emits {formato_numero(2 ** pendiente, 2)} times more, and the relationship")
+    a(f"explains {formato_numero(r2 * 100, 2)}% of the observed variation.")
     a("")
 
-    # De dónde sale la proporcionalidad: si la potencia con la que se calcula la energía
-    # casi no varía entre algoritmos, el ajuste no dice nada sobre el mundo. Con potencia
-    # medida sí lo dice, así que el texto cambia según lo que haya pasado en la corrida.
+    # Where the proportionality comes from: if the power used to compute the energy barely
+    # varies between algorithms, the fit says nothing about the world. With measured power
+    # it does, so the text changes depending on what happened in the run.
     potencias = (
         mediciones.potencia_cpu_w.dropna()
         if mediciones is not None and "potencia_cpu_w" in mediciones
         else pd.Series(dtype=float)
     )
     if cc.get("lectura_directa"):
-        a("Conviene entender por qué, porque no es una ley general. Casi todas las cargas de")
-        a("este banco de pruebas usan el procesador de la misma forma: un solo núcleo,")
-        a("calculando sin pausas. A igual intensidad de uso, el consumo por segundo es")
-        a("parecido, y entonces la energía, que es consumo por tiempo, queda gobernada por el")
-        a("tiempo. **La proporcionalidad es real, pero vale entre cargas que usan la máquina de")
-        a("forma comparable.**")
+        a("It is worth understanding why, because it is not a general law. Almost all workloads")
+        a("in this benchmark use the processor the same way: a single core,")
+        a("computing without pauses. At the same usage intensity, consumption per second is")
+        a("similar, and so energy, which is consumption over time, ends up governed by")
+        a("time. **The proportionality is real, but it holds among workloads that use the machine")
+        a("in a comparable way.**")
         a("")
     else:
-        a("Conviene explicar de dónde sale esa proporcionalidad antes de leerla como un")
-        a("hallazgo. En esta corrida la potencia no se midió: se calculó a partir de cuán")
-        a("ocupada estaba la máquina (secc 5.2), y eso la vuelve casi insensible a qué algoritmo")
-        a("esté corriendo.")
+        a("It is worth explaining where that proportionality comes from before reading it as a")
+        a("finding. In this run power was not measured: it was calculated from how")
+        a("busy the machine was (section 5.2), which makes it almost insensitive to which algorithm")
+        a("is running.")
         if not potencias.empty:
             mediana_pot = float(potencias.median())
             cerca = float(((potencias - mediana_pot).abs() / mediana_pot <= 0.01).mean())
-            a(f"De hecho quedó entre {formato_numero(float(potencias.min()))} y "
-              f"{formato_numero(float(potencias.max()))} W, y en el {formato_numero(cerca * 100, 0)}% de las")
-            a(f"mediciones no se movió más del 1% de su valor típico ({formato_numero(mediana_pot)} W).")
-        a("Con la potencia casi fija, la energía es el tiempo multiplicado por una constante:")
-        a("**la proporcionalidad es en buena medida una consecuencia de cómo se estimó, no un")
-        a("resultado empírico.**")
+            a(f"In fact it stayed between {formato_numero(float(potencias.min()))} and "
+              f"{formato_numero(float(potencias.max()))} W, and in {formato_numero(cerca * 100, 0)}% of the")
+            a(f"measurements it moved no more than 1% from its typical value ({formato_numero(mediana_pot)} W).")
+        a("With power nearly fixed, energy is time multiplied by a constant:")
+        a("**the proportionality is largely a consequence of how it was estimated, not an")
+        a("empirical result.**")
         a("")
 
-    # Contraejemplo dentro de los propios datos: el par donde el factor de tiempo y el de
-    # emisiones más se despegan.
+    # Counterexample within the data itself: the pair where the time factor and the
+    # emissions factor diverge the most.
     mejor_contraste: tuple[float, Any, Any, str] | None = None
     for clave_exp in sorted(set(str(x) for x in resumen.experimento.unique())):
         datos_exp = resumen[resumen.experimento == clave_exp]
@@ -695,79 +691,79 @@ def generar(resumen: pd.DataFrame, metadatos: dict[str, Any], rutas: dict[str, s
         _, rapido, lento, clave_exp = mejor_contraste
         f_tiempo = float(lento.tiempo_s_mean / rapido.tiempo_s_mean)
         f_co2 = float(lento.co2_kg_mean / rapido.co2_kg_mean)
-        a("Y hay un par donde la proporcionalidad se rompe. El caso más claro está en")
-        a(f"{EXPERIMENTOS[clave_exp].titulo}, con "
+        a("And there is a pair where the proportionality breaks down. The clearest case is in")
+        a(f"{EXPERIMENTOS[clave_exp].titulo}, with "
           f"{EXPERIMENTOS[clave_exp].unidad_n} = {formato_numero(int(rapido.n), 0)}: "
-          f"`{rapido.algoritmo}` termina")
-        a(f"**{formato_factor(f_tiempo)} veces más rápido** que `{lento.algoritmo}`, pero emite sólo")
-        a(f"**{formato_factor(f_co2)} veces menos**. La diferencia está en cuántos núcleos usa cada")
-        a("uno: repartir el trabajo entre varios acorta el reloj, pero el consumo se paga por")
-        a("núcleo y hora, y ese total no baja en la misma proporción.")
+          f"`{rapido.algoritmo}` finishes")
+        a(f"**{formato_factor(f_tiempo)} times faster** than `{lento.algoritmo}`, but emits only")
+        a(f"**{formato_factor(f_co2)} times less**. The difference lies in how many cores each one")
+        a("uses: splitting the work across several shortens the clock time, but consumption is paid per")
+        a("core-hour, and that total does not drop in the same proportion.")
         a("")
 
     if mejor_contraste is not None and mejor_contraste[0] > 2:
-        a("**Conclusión práctica:** el tiempo de ejecución sirve como indicador de la huella")
-        a("entre algoritmos que usan la máquina de forma parecida, pero **no basta cuando")
-        a("cambia cuántos núcleos se ocupan**: ahí optimizar el reloj puede no reducir las")
-        a("emisiones en la misma medida, y hace falta medir la energía.")
+        a("**Practical conclusion:** execution time works as an indicator of the footprint")
+        a("among algorithms that use the machine in a similar way, but **it is not enough when")
+        a("the number of busy cores changes**: there, optimizing the clock may not reduce")
+        a("emissions to the same extent, and energy needs to be measured.")
     else:
-        a("**Conclusión práctica:** en este banco de pruebas el tiempo de ejecución resultó un")
-        a("buen indicador de la huella, incluso en la carga que ocupa todos los núcleos. No")
-        a("conviene generalizarlo: un programa que pasa el tiempo esperando respuesta de disco")
-        a("o de red acumula segundos sin consumir casi nada, y ahí la relación se rompe. Este")
-        a("trabajo no mide ese caso.")
+        a("**Practical conclusion:** in this benchmark execution time turned out to be a")
+        a("good indicator of the footprint, even for the workload that uses every core. It")
+        a("should not be generalized: a program that spends its time waiting on disk or")
+        a("network accumulates seconds while consuming almost nothing, and there the relationship")
+        a("breaks down. This work does not measure that case.")
     a("")
 
     if "tiempo_vs_co2" in rutas:
-        # El gráfico se explica de cero: qué es cada punto, qué dice cada eje, por qué la
-        # escala no es la habitual y qué hay que mirar. Los números salen de los datos.
-        a("**Cómo leer el gráfico que sigue.**")
+        # The chart is explained from scratch: what each point is, what each axis says, why
+        # the scale is not the usual one and what to look for. The numbers come from the data.
+        a("**How to read the chart below.**")
         a("")
-        a("Cada punto es **un algoritmo resolviendo un problema de un tamaño determinado**.")
-        a("Ordenar una lista de 8.000 elementos con `bubble_sort` es un punto; ordenar una de")
-        a(f"1.000 con el mismo algoritmo es otro punto distinto. Hay {len(resumen)} en total, uno por cada")
-        a("combinación de algoritmo y tamaño que se midió.")
+        a("Each point is **one algorithm solving a problem of a given size**.")
+        a("Sorting a list of 8,000 elements with `bubble_sort` is one point; sorting one of")
+        a(f"1,000 with the same algorithm is a different point. There are {len(resumen)} in total, one for each")
+        a("combination of algorithm and size that was measured.")
         a("")
-        a("La posición de cada punto dice dos cosas: **cuanto más a la derecha está, más tarda**")
-        a("esa ejecución, y **cuanto más arriba, más CO₂ emite**. Así que el rincón de abajo a la")
-        a("izquierda es el de los algoritmos rápidos y limpios, y el de arriba a la derecha, el")
-        a("de los lentos y sucios.")
+        a("The position of each point says two things: **the further right it is, the longer**")
+        a("that run takes, and **the higher it is, the more CO₂ it emits**. So the bottom-left")
+        a("corner is where the fast, clean algorithms are, and the top-right corner is")
+        a("where the slow, dirty ones are.")
         a("")
         lento = resumen.loc[resumen.tiempo_s_mean.idxmax()]
         veloz = resumen.loc[resumen.tiempo_s_mean.idxmin()]
-        a("Los dos ejes avanzan **multiplicando por diez en cada marca**, en lugar de sumar una")
-        a("cantidad fija. Hace falta porque las duraciones son muy distintas entre sí: "
+        a("Both axes advance **by multiplying by ten at each tick**, instead of adding a")
+        a("fixed amount. This is needed because the durations are very different from each other: "
           f"`{veloz.algoritmo}`")
-        a(f"tarda {formato_duracion(veloz.tiempo_s_mean)} y `{lento.algoritmo}` tarda")
-        a(f"{formato_duracion(lento.tiempo_s_mean)}, o sea "
-          f"{formato_numero(lento.tiempo_s_mean / veloz.tiempo_s_mean, 0)} veces más. En una escala")
-        a("común, todos los puntos rápidos quedarían apilados contra el borde izquierdo y no")
-        a("se vería nada.")
+        a(f"takes {formato_duracion(veloz.tiempo_s_mean)} and `{lento.algoritmo}` takes")
+        a(f"{formato_duracion(lento.tiempo_s_mean)}, that is, "
+          f"{formato_numero(lento.tiempo_s_mean / veloz.tiempo_s_mean, 0)} times longer. On an ordinary")
+        a("scale, all the fast points would be piled up against the left edge and nothing")
+        a("could be seen.")
         a("")
-        a("Y lo que hay que mirar es que **los puntos forman una línea recta**, sin desparramarse:")
-        a("el algoritmo que tarda el doble emite alrededor del doble, y eso se cumple en todo el")
-        a("rango medido, desde las millonésimas de segundo hasta los dos segundos. Si el tiempo")
-        a("y las emisiones no tuvieran relación, los puntos aparecerían dispersos por todo el")
-        a("gráfico en lugar de alineados.")
+        a("And what to look for is that **the points form a straight line**, without scattering:")
+        a("the algorithm that takes twice as long emits about twice as much, and this holds across the")
+        a("whole measured range, from microseconds up to two seconds. If time")
+        a("and emissions were unrelated, the points would appear scattered across the whole")
+        a("chart instead of lined up.")
         a("")
-        a(f"![Tiempo vs CO₂]({rutas['tiempo_vs_co2']})")
+        a(f"![Time vs CO₂]({rutas['tiempo_vs_co2']})")
         a("")
 
-    a("### 5.2 Cuánta confianza merecen estas cifras")
+    a("### 5.2 How much confidence these figures deserve")
     a("")
-    a("Una huella de carbono de software es energía convertida a CO₂, y la energía es")
-    a("potencia por tiempo. El tiempo se cronometra sin dificultad. La potencia es la parte")
-    a("difícil, y de ella depende todo lo demás, así que corresponde declarar de dónde salió.")
+    a("A software carbon footprint is energy converted to CO₂, and energy is")
+    a("power times time. Time is timed without difficulty. Power is the hard")
+    a("part, and everything else depends on it, so its origin must be stated.")
     a("")
     if cc.get("lectura_directa"):
-        a("**En esta corrida la potencia se midió** con el sensor de consumo del propio equipo")
-        a("(secc 3.4). Los valores absolutos de CO₂ se apoyan entonces en un consumo real. Quedan")
-        a("dos salvedades, que no son del cálculo sino del alcance de la medición:")
+        a("**In this run power was measured** with the machine's own power sensor")
+        a("(section 3.4). The absolute CO₂ values therefore rest on actual consumption. Two")
+        a("caveats remain, which concern not the calculation but the scope of the measurement:")
         a("")
-        a("1. **El sensor mide el procesador completo, no el algoritmo.** Si otro programa")
-        a("   trabaja al mismo tiempo, parte de su consumo se le atribuye al algoritmo medido.")
-        a("   Se midió con el equipo descargado y repitiendo cada punto tres veces, pero no se")
-        a("   elimina del todo.")
+        a("1. **The sensor measures the whole processor, not the algorithm.** If another program")
+        a("   is working at the same time, part of its consumption is attributed to the measured algorithm.")
+        a("   Measurements were taken with the machine idle and each point repeated three times, but it is")
+        a("   not entirely eliminated.")
         cola = float("nan")
         if (
             mediciones is not None
@@ -778,126 +774,126 @@ def generar(resumen: pd.DataFrame, metadatos: dict[str, Any], rutas: dict[str, s
                 * mediciones.ejecuciones_lote
             )
             cola = float(diferencia.median())
-        a("2. **Tomar la lectura lleva su propio tiempo.** El consumo que se informa cubre la")
-        a("   ventana de medición completa, y esa ventana incluye el rato que el instrumento")
+        a("2. **Taking the reading takes time of its own.** The reported consumption covers the")
+        a("   entire measurement window, and that window includes the time the instrument")
         if cola == cola:
-            a(f"   tarda en leer: {formato_numero(cola, 1)} s por medición en esta corrida, sobre ventanas de")
-            a(f"   {formato_numero(metadatos.get('ventana_medicion_s', float('nan')), 1)} s. Ese rato transcurre con el algoritmo ya terminado y el equipo")
+            a(f"   takes to read: {formato_numero(cola, 1)} s per measurement in this run, over windows of")
+            a(f"   {formato_numero(metadatos.get('ventana_medicion_s', float('nan')), 1)} s. That time passes with the algorithm already finished and the machine")
         else:
-            a("   tarda en leer. Ese rato transcurre con el algoritmo ya terminado y el equipo")
-        a("   casi en reposo, así que **agrega algo de consumo que no le corresponde al")
-        a("   algoritmo**. Afecta más a los algoritmos más rápidos, que son los que quedan")
-        a("   con las ventanas más cortas.")
+            a("   takes to read. That time passes with the algorithm already finished and the machine")
+        a("   nearly idle, so **it adds some consumption that does not belong to the")
+        a("   algorithm**. It affects the fastest algorithms the most, since they are the ones")
+        a("   with the shortest windows.")
         a("")
-        a("**La alternativa habría sido estimarla.** Cuando un equipo no expone un sensor")
-        a("accesible, la herramienta deduce la potencia del consumo nominal del procesador y de")
-        a("cuán ocupada está la máquina. Conviene saber a qué se renunció al no usar ese")
-        a("camino: en este equipo la herramienta no reconoce el procesador, así que le habría")
-        a(f"asignado un consumo nominal genérico de {formato_numero(cc.get('tdp_por_defecto_codecarbon_w', float('nan')), 0)} W (el de una computadora de")
-        a("escritorio, no el de una notebook) y de ahí habría derivado toda la energía.")
+        a("**The alternative would have been to estimate it.** When a machine does not expose an")
+        a("accessible sensor, the tool infers power from the processor's nominal consumption and")
+        a("from how busy the machine is. It is worth knowing what was given up by not taking that")
+        a("path: on this machine the tool does not recognize the processor, so it would have")
+        a(f"assigned it a generic nominal consumption of {formato_numero(cc.get('tdp_por_defecto_codecarbon_w', float('nan')), 0)} W (that of a desktop")
+        a("computer, not a laptop) and derived all the energy from there.")
         a("")
     else:
-        a("**En esta corrida la potencia no se midió: se estimó.** El equipo no expuso un")
-        a("sensor accesible, así que la herramienta la dedujo del consumo nominal del")
-        a("procesador y de cuán ocupada estaba la máquina. Eso tiene dos consecuencias:")
+        a("**In this run power was not measured: it was estimated.** The machine did not expose an")
+        a("accessible sensor, so the tool inferred it from the processor's nominal")
+        a("consumption and from how busy the machine was. This has two consequences:")
         a("")
-        a("1. **El consumo nominal es un valor genérico.** La herramienta no reconoce este")
-        a(f"   procesador, así que le asigna {formato_numero(cc.get('tdp_por_defecto_codecarbon_w', float('nan')), 0)} W, el consumo de una computadora de")
-        a("   escritorio y no el de una notebook. Toda la energía se deriva de ese número.")
-        a("2. **Mira la máquina, no el algoritmo.** La estimación parte de cuán ocupado está el")
-        a("   equipo entero. Con la máquina mayormente en reposo queda casi fija, y por lo")
-        a("   tanto es poco sensible a qué algoritmo esté corriendo.")
+        a("1. **The nominal consumption is a generic value.** The tool does not recognize this")
+        a(f"   processor, so it assigns it {formato_numero(cc.get('tdp_por_defecto_codecarbon_w', float('nan')), 0)} W, the consumption of a desktop")
+        a("   computer and not that of a laptop. All the energy is derived from that number.")
+        a("2. **It looks at the machine, not the algorithm.** The estimate starts from how busy the")
+        a("   whole machine is. With the machine mostly idle it stays nearly fixed, and is")
+        a("   therefore barely sensitive to which algorithm is running.")
         a("")
         if cc.get("powermetrics_disponible"):
-            a("Y no fue porque el equipo no pudiera medirla: **sí podía**. La herramienta, en este")
-            a("tipo de máquina, no usa el sensor por su cuenta salvo que se le pida")
-            a("explícitamente, y no avisa de que está estimando. Es la razón por la que este")
-            a("trabajo se lo pide de forma expresa (secc 3.4).")
+            a("And it was not because the machine could not measure it: **it could**. On this")
+            a("type of machine, the tool does not use the sensor on its own unless explicitly")
+            a("asked to, and it gives no warning that it is estimating. That is why this")
+            a("work requests it explicitly (section 3.4).")
             a("")
 
-    a("**Qué se puede afirmar y qué no.**")
+    a("**What can and cannot be claimed.**")
     a("")
     if cc.get("lectura_directa"):
-        a("- Los valores absolutos de CO₂ son una medición, no una estimación, y se pueden")
-        a("  citar como tales.")
+        a("- The absolute CO₂ values are a measurement, not an estimate, and can be")
+        a("  cited as such.")
     else:
-        a("- Los valores absolutos de CO₂ son un **orden de magnitud**, no una cifra exacta.")
-    a("- **Las comparaciones entre algoritmos se sostienen**, que es lo que responde la")
-    a("  hipótesis de este trabajo: todos se midieron de la misma forma, en el mismo equipo y")
-    a("  en la misma sesión, así que cualquier sesgo los afecta a todos por igual.")
-    a("- Y queda una lección que va más allá de este proyecto: **dos mediciones de huella del")
-    a("  software pueden diferir varias veces según cómo obtuvieron la potencia.** Un informe")
-    a("  de huella que no declare eso no es verificable.")
+        a("- The absolute CO₂ values are an **order of magnitude**, not an exact figure.")
+    a("- **The comparisons between algorithms hold**, which is what answers the")
+    a("  hypothesis of this work: all were measured the same way, on the same machine and")
+    a("  in the same session, so any bias affects all of them equally.")
+    a("- And there is a lesson that goes beyond this project: **two software footprint")
+    a("  measurements can differ several-fold depending on how they obtained power.** A")
+    a("  footprint report that does not state this is not verifiable.")
     a("")
 
-    # ---------------------------------------------------------------- equivalencias
-    a("### 5.3 Magnitud de los resultados")
+    # ---------------------------------------------------------------- equivalences
+    a("### 5.3 Magnitude of the results")
     a("")
-    a("Las emisiones de una ejecución individual son diminutas. La suma de todas las")
-    a(f"configuraciones medidas en este benchmark asciende a {formato_cientifico(total_co2)} kgCO₂eq.")
-    a("Presentar solo ese número invitaría a concluir que el problema es irrelevante, y")
-    a("sería una lectura equivocada: el software se ejecuta a escala.")
+    a("The emissions of a single run are tiny. The sum of all the")
+    a(f"configurations measured in this benchmark amounts to {formato_cientifico(total_co2)} kgCO₂eq.")
+    a("Presenting only that number would invite the conclusion that the problem is irrelevant, and")
+    a("that would be the wrong reading: software runs at scale.")
     a("")
     peor = resumen.loc[resumen.co2_kg_mean.idxmax()]
-    # Las escalas de extrapolación las declara cada experimento: multiplicar un
-    # entrenamiento de modelo por mil millones no describe ningún escenario real. Si el
-    # experimento no declara las suyas, se usan las de una función invocada por un servicio.
+    # The extrapolation scales are declared by each experiment: multiplying a model
+    # training by a billion does not describe any real scenario. If the experiment does
+    # not declare its own, those of a function called by a service are used.
     escalas_peor = EXPERIMENTOS[str(peor.experimento)].escalas or [
-        (1_000_000, "lo que invoca un servicio web de tamaño medio a lo largo de unos meses"),
-        (1_000_000_000, "la escala de un servicio masivo"),
+        (1_000_000, "what a medium-sized web service calls over a few months"),
+        (1_000_000_000, "the scale of a massive service"),
     ]
     for multiplicador, descripcion in escalas_peor:
         co2 = peor.co2_kg_mean * multiplicador
         equivalencias_txt = ", ".join(
             f"{formato_numero(co2 / factor, 0)} {nombre}" for nombre, factor, _ in EQUIVALENCIAS
         )
-        a(f"- El peor algoritmo medido (`{peor.algoritmo}`, {EXPERIMENTOS[str(peor.experimento)].unidad_n} "
-          f"= {formato_numero(int(peor.n), 0)}) repetido")
-        a(f"  {formato_numero(multiplicador, 0)} veces, {descripcion}, emite {formato_numero(co2, 3)} kgCO₂eq,")
-        a(f"  equivalente a {equivalencias_txt}.")
+        a(f"- The worst algorithm measured (`{peor.algoritmo}`, {EXPERIMENTOS[str(peor.experimento)].unidad_n} "
+          f"= {formato_numero(int(peor.n), 0)}) repeated")
+        a(f"  {formato_numero(multiplicador, 0)} times, {descripcion}, emits {formato_numero(co2, 3)} kgCO₂eq,")
+        a(f"  equivalent to {equivalencias_txt}.")
     a("")
-    a("Equivalencias utilizadas:")
+    a("Equivalences used:")
     a("")
     a(
         tabla_markdown(
             [
-                [nombre, f"{formato_numero(factor, 5)} kgCO₂eq c/u", fuente]
+                [nombre, f"{formato_numero(factor, 5)} kgCO₂eq each", fuente]
                 for nombre, factor, fuente in EQUIVALENCIAS
             ],
-            ["Unidad", "Factor", "Fuente / cálculo"],
+            ["Unit", "Factor", "Source / calculation"],
         )
     )
     a("")
 
-    # ---------------------------------------------------------------- limitaciones
-    # ---------------------------------------------------------------- compensación
-    a("## 6. Compensación")
+    # ---------------------------------------------------------------- limitations
+    # ---------------------------------------------------------------- offsetting
+    a("## 6. Offsetting")
     a("")
     if config.ARBOLES and mediciones is not None:
         por_anio = dict((nombre, kg) for nombre, kg, _ in config.ARBOLES)
-        adulto = por_anio.get("adulto")
-        joven = por_anio.get("recién plantado")
-        a("Una forma de dimensionar las emisiones es preguntarse cuánta naturaleza haría falta")
-        a("para absorberlas. Se adoptan como referencia las siguientes absorciones anuales, que")
-        a("este trabajo no midió: son valores de referencia declarados como supuestos.")
+        adulto = por_anio.get("mature")
+        joven = por_anio.get("newly planted")
+        a("One way to put the emissions in perspective is to ask how much nature would be needed")
+        a("to absorb them. The following annual absorption values are adopted as a reference;")
+        a("this work did not measure them: they are reference values stated as assumptions.")
         a("")
         a(
             tabla_markdown(
-                [[f"Árbol {nombre}", f"{formato_numero(kg, 0)} kgCO₂eq por año"] for nombre, kg, _ in config.ARBOLES],
-                ["Árbol", "Absorción anual"],
+                [[f"{nombre_arbol(nombre)} tree", f"{formato_numero(kg, 0)} kgCO₂eq per year"] for nombre, kg, _ in config.ARBOLES],
+                ["Tree", "Annual absorption"],
             )
         )
         a("")
 
-        a("### 6.1 Árboles para compensar lo medido")
+        a("### 6.1 Trees needed to offset what was measured")
         a("")
         if adulto:
-            a(f"El benchmark completo emitió {formato_cientifico(total_co2)} kgCO₂eq (secc 5.3). Compensarlo")
-            a(f"requiere {formato_cientifico(total_co2 / adulto)} árboles adultos: en la práctica, ninguno. Un solo")
-            a(f"árbol adulto absorbe en un año lo que emite este benchmark repetido")
-            a(f"{formato_numero(adulto / total_co2, 0)} veces.")
+            a(f"The full benchmark emitted {formato_cientifico(total_co2)} kgCO₂eq (section 5.3). Offsetting it")
+            a(f"requires {formato_cientifico(total_co2 / adulto)} mature trees: in practice, none. A single")
+            a(f"mature tree absorbs in one year what this benchmark emits when repeated")
+            a(f"{formato_numero(adulto / total_co2, 0)} times.")
             a("")
-        a("La cifra recién significa algo a escala de uso real. Con el peor algoritmo medido")
+        a("The figure only becomes meaningful at real-world usage scale. With the worst algorithm measured")
         a(f"(`{peor.algoritmo}`, {EXPERIMENTOS[str(peor.experimento)].unidad_n} = "
           f"{formato_numero(int(peor.n), 0)}):")
         a("")
@@ -906,7 +902,7 @@ def generar(resumen: pd.DataFrame, metadatos: dict[str, Any], rutas: dict[str, s
             co2 = peor.co2_kg_mean * multiplicador
             filas_escala.append(
                 [
-                    f"{formato_numero(multiplicador, 0)} ejecuciones",
+                    f"{formato_numero(multiplicador, 0)} runs",
                     f"{formato_numero(co2, 3)} kgCO₂eq",
                 ]
                 + [formato_arboles(co2 / kg) for _, kg, _ in config.ARBOLES]
@@ -914,77 +910,77 @@ def generar(resumen: pd.DataFrame, metadatos: dict[str, Any], rutas: dict[str, s
         a(
             tabla_markdown(
                 filas_escala,
-                ["Escala de uso", "CO₂"]
-                + [f"Árboles {plural_arbol(nombre)}" for nombre, _, _ in config.ARBOLES],
+                ["Usage scale", "CO₂"]
+                + [f"{nombre_arbol(nombre)} trees" for nombre, _, _ in config.ARBOLES],
             )
         )
         a("")
-        # La lectura inversa es la más fuerte: el mismo árbol rinde muchísimo más si el
-        # algoritmo es el adecuado.
+        # The inverse reading is the strongest one: the same tree goes much further if the
+        # algorithm is the right one.
         datos_peor = resumen[resumen.experimento == peor.experimento]
         en_max = datos_peor[datos_peor.n == datos_peor.n.max()].sort_values("co2_kg_mean")
         if len(en_max) >= 2:
             eficiente = en_max.iloc[0]
-            a("Y al revés: cuántas ejecuciones alcanza a compensar un solo árbol en un año, según")
-            a("qué algoritmo se elija para hacer el mismo trabajo.")
+            a("And the other way around: how many runs a single tree can offset in one year, depending")
+            a("on which algorithm is chosen to do the same work.")
             a("")
             a(
                 tabla_markdown(
                     [
                         [
-                            f"Árbol {nombre}",
+                            f"{nombre_arbol(nombre)} tree",
                             formato_numero(kg / peor.co2_kg_mean, 0),
                             formato_numero(kg / eficiente.co2_kg_mean, 0),
                         ]
                         for nombre, kg, _ in config.ARBOLES
                     ],
-                    ["Árbol", f"`{peor.algoritmo}`", f"`{eficiente.algoritmo}`"],
+                    ["Tree", f"`{peor.algoritmo}`", f"`{eficiente.algoritmo}`"],
                 )
             )
             a("")
             factor = float(peor.co2_kg_mean / eficiente.co2_kg_mean)
-            a(f"Resolver el mismo problema con `{eficiente.algoritmo}` en lugar de `{peor.algoritmo}`")
-            a(f"hace que el mismo árbol alcance para {formato_factor(factor)} veces más ejecuciones.")
+            a(f"Solving the same problem with `{eficiente.algoritmo}` instead of `{peor.algoritmo}`")
+            a(f"makes the same tree cover {formato_factor(factor)} times more runs.")
             a("")
 
-        a("### 6.2 Horas de procesamiento que compensa un árbol")
+        a("### 6.2 Processing hours offset by one tree")
         a("")
         tasas = (mediciones.co2_kg / mediciones.tiempo_s).dropna()
         kg_por_hora = float(tasas.median()) * 3600.0
         cantidad_algoritmos = int(resumen.algoritmo.nunique())
-        a("Mientras el equipo calcula, la tasa de emisión es prácticamente la misma para los")
-        a(f"{formato_numero(cantidad_algoritmos, 0)} algoritmos medidos: lo que cambia entre ellos es cuánto tiempo la")
-        a("sostienen, no la intensidad. La mediana de esta corrida es")
-        a(f"{formato_numero(kg_por_hora * 1000, 3)} gramos de CO₂ por hora de procesamiento.")
+        a("While the machine is computing, the emission rate is practically the same for the")
+        a(f"{formato_numero(cantidad_algoritmos, 0)} algorithms measured: what changes between them is how long they")
+        a("sustain it, not its intensity. The median for this run is")
+        a(f"{formato_numero(kg_por_hora * 1000, 3)} grams of CO₂ per hour of processing.")
         a("")
         a(
             tabla_markdown(
                 [
                     [
-                        f"Árbol {nombre}",
+                        f"{nombre_arbol(nombre)} tree",
                         f"{formato_numero(kg / kg_por_hora, 0)} h",
-                        f"{formato_numero(kg / kg_por_hora / 24, 0)} días",
-                        f"{formato_numero(kg / kg_por_hora / 8760, 1)} años",
+                        f"{formato_numero(kg / kg_por_hora / 24, 0)} days",
+                        f"{formato_numero(kg / kg_por_hora / 8760, 1)} years",
                     ]
                     for nombre, kg, _ in config.ARBOLES
                 ],
-                ["Árbol", "Horas que compensa", "Equivale a", "De cómputo continuo"],
+                ["Tree", "Hours offset", "Equivalent to", "Of continuous computing"],
             )
         )
         a("")
         if joven:
             arboles_anio = 8760.0 * kg_por_hora / joven
-            a(f"Es decir que un árbol recién plantado absorbe en un año lo que este equipo emite")
-            a(f"calculando sin parar durante {formato_numero(joven / kg_por_hora / 8760, 1)} años. Puesto al revés: una notebook")
-            a(f"trabajando a pleno los 365 días necesita {formato_numero(arboles_anio, 2)} árboles recién")
-            a("plantados para quedar neutra.")
+            a(f"In other words, a newly planted tree absorbs in one year what this machine emits")
+            a(f"computing non-stop for {formato_numero(joven / kg_por_hora / 8760, 1)} years. Put the other way around: a laptop")
+            a(f"working at full load 365 days a year needs {formato_numero(arboles_anio, 2)} newly")
+            a("planted trees to become neutral.")
             a("")
-        a("Estas cifras son de este equipo y esta red eléctrica (secc 3.1 y secc 2). Un servidor de")
-        a("centro de datos emite por hora uno o dos órdenes de magnitud más.")
+        a("These figures are for this machine and this power grid (sections 3.1 and 2). A data")
+        a("center server emits one or two orders of magnitude more per hour.")
         a("")
 
-    # ---------------------------------------------------------------- conclusiones
-    a("## 7. Conclusiones")
+    # ---------------------------------------------------------------- conclusions
+    a("## 7. Conclusions")
     a("")
     conclusiones: list[str] = []
     for clave in EXPERIMENTOS:
@@ -998,89 +994,89 @@ def generar(resumen: pd.DataFrame, metadatos: dict[str, Any], rutas: dict[str, s
         mejor, peor_e = en_max.iloc[0], en_max.iloc[-1]
         factor = peor_e.co2_kg_mean / mejor.co2_kg_mean
         conclusiones.append(
-            f"En {EXPERIMENTOS[clave].titulo} (n={int(n_max)}), "
-            f"`{mejor.algoritmo}` emite **{formato_factor(factor)}×** menos CO₂ que "
-            f"`{peor_e.algoritmo}` para un resultado idéntico."
+            f"In {EXPERIMENTOS[clave].titulo} (n={int(n_max)}), "
+            f"`{mejor.algoritmo}` emits **{formato_factor(factor)}×** less CO₂ than "
+            f"`{peor_e.algoritmo}` for an identical result."
         )
     for i, texto in enumerate(conclusiones, start=1):
         a(f"{i}. {texto}")
     a("")
-    a("**La hipótesis se verifica.** Las diferencias de huella entre algoritmos")
-    a("equivalentes no son marginales: alcanzan varios órdenes de magnitud. **Elegir un")
-    a("algoritmo adecuado no es solo una decisión de rendimiento, es también una decisión")
-    a("ambiental**.")
+    a("**The hypothesis is confirmed.** The footprint differences between equivalent")
+    a("algorithms are not marginal: they reach several orders of magnitude. **Choosing an")
+    a("appropriate algorithm is not just a performance decision, it is also an environmental")
+    a("decision**.")
     a("")
 
-    # ---------------------------------------------------------------- reproducción
-    a("## 8. Reproducción")
+    # ---------------------------------------------------------------- reproduction
+    a("## 8. Reproduction")
     a("")
     a("```bash")
-    a("uv sync                            # instala el entorno exacto desde uv.lock")
-    a("uv run huella-carbono --completo   # corre el benchmark y regenera este informe")
+    a("uv sync                          # installs the exact environment from uv.lock")
+    a("uv run huella-carbono --full     # runs the benchmark and regenerates this report")
     a("```")
     a("")
-    a("Entradas de datos versionadas con el proyecto (no se generan, se leen):")
+    a("Data inputs versioned with the project (they are not generated, they are read):")
     a("")
     a(
         tabla_markdown(
             [
                 [
                     f"`datos/{config.ARCHIVO_INTENSIDAD_CARBONO.name}`",
-                    "serie de intensidad de carbono de la red argentina y factor oficial "
-                    "de contraste, con su procedencia",
+                    "carbon intensity series of the Argentine grid and official cross-check "
+                    "factor, with their provenance",
                 ],
                 [
                     f"`datos/{config.ARCHIVO_EQUIVALENCIAS.name}`",
-                    "factores para traducir kgCO₂eq a magnitudes tangibles (secc 5.3), "
-                    "con su fuente",
+                    "factors for translating kgCO₂eq into tangible quantities (section 5.3), "
+                    "with their source",
                 ],
             ],
-            ["Archivo", "Contenido"],
+            ["File", "Contents"],
         )
     )
     a("")
 
-    # ---------------------------------------------------------------- referencias
-    a("## 9. Fuentes y referencias")
+    # ---------------------------------------------------------------- references
+    a("## 9. Sources and references")
     a("")
     grupos: list[tuple[str, list[str]]] = []
 
     datos_red = [
         f"{config.FUENTE_FACTOR_EMISION}. *{config.INTENSIDAD_CARBONO['indicador']}*, "
-        f"serie {min(config.INTENSIDAD_CARBONO['serie_g_kwh'], key=int)}–{config.ANIO_FACTOR_EMISION} "
-        f"para {config.INTENSIDAD_CARBONO['pais']}. "
-        f"<{config.INTENSIDAD_CARBONO['url']}> (consultado el {config.INTENSIDAD_CARBONO['descargado']}). "
-        f"Valor adoptado en este trabajo: "
+        f"series {min(config.INTENSIDAD_CARBONO['serie_g_kwh'], key=int)}–{config.ANIO_FACTOR_EMISION} "
+        f"for {config.INTENSIDAD_CARBONO['pais']}. "
+        f"<{config.INTENSIDAD_CARBONO['url']}> (accessed on {config.INTENSIDAD_CARBONO['descargado']}). "
+        f"Value adopted in this work: "
         f"{formato_numero(config.FACTOR_EMISION_AR_G_KWH, 1)} gCO₂eq/kWh ({config.ANIO_FACTOR_EMISION})."
     ]
     if config.INTENSIDAD_CARBONO.get("url_fuente_upstream"):
         datos_red.append(
-            "Ember. *Yearly Electricity Data* — fuente primaria de la serie anterior. "
+            "Ember. *Yearly Electricity Data* — primary source of the series above. "
             f"<{config.INTENSIDAD_CARBONO['url_fuente_upstream']}>."
         )
     if oficial:
         datos_red.append(
             f"{oficial['organismo']}. *{oficial['indicador']}*. "
-            f"Metodología: {oficial['metodologia']}. "
-            f"<{oficial['url']}> (archivo `{oficial['archivo']}`, consultado el {oficial['descargado']}). "
-            f"Valor {oficial['anio']}: {formato_numero(oficial['valor_g_kwh'], 1)} gCO₂eq/kWh; "
-            "citado como contraste, no usado en los cálculos."
+            f"Methodology: {oficial['metodologia']}. "
+            f"<{oficial['url']}> (file `{oficial['archivo']}`, accessed on {oficial['descargado']}). "
+            f"Value for {oficial['anio']}: {formato_numero(oficial['valor_g_kwh'], 1)} gCO₂eq/kWh; "
+            "cited as a cross-check, not used in the calculations."
         )
-    grupos.append(("Datos de emisiones de la red eléctrica", datos_red))
+    grupos.append(("Power grid emissions data", datos_red))
 
     herramientas = [
-        f"CodeCarbon {metadatos.get('codecarbon', 'n/d')} — herramienta de medición usada en "
-        "este trabajo (secc 3.4). <https://github.com/mlco2/codecarbon> · "
-        "<https://mlco2.github.io/codecarbon/>. Su tabla interna de factores de emisión por "
-        f"país da para Argentina {formato_numero(config.FACTOR_EMISION_CODECARBON_G_KWH, 1)} gCO₂eq/kWh, valor de "
-        f"{config.ANIO_FACTOR_EMISION_CODECARBON}, que este trabajo no adopta por el motivo explicado en secc 2.",
-        f"scikit-learn {metadatos.get('scikit_learn', 'n/d')} — provee el clasificador de "
-        "vecinos más cercanos y el generador del conjunto de datos sintético del cuarto "
-        "experimento. <https://scikit-learn.org/stable/>.",
-        "Utilidad de consumo del sistema operativo (macOS) — es el sensor del que se lee la "
-        "potencia real del procesador en este equipo (secc 3.4).",
+        f"CodeCarbon {metadatos.get('codecarbon', 'n/a')} — measurement tool used in "
+        "this work (section 3.4). <https://github.com/mlco2/codecarbon> · "
+        "<https://mlco2.github.io/codecarbon/>. Its internal table of emission factors by "
+        f"country gives {formato_numero(config.FACTOR_EMISION_CODECARBON_G_KWH, 1)} gCO₂eq/kWh for Argentina, a value from "
+        f"{config.ANIO_FACTOR_EMISION_CODECARBON}, which this work does not adopt for the reason explained in section 2.",
+        f"scikit-learn {metadatos.get('scikit_learn', 'n/a')} — provides the nearest-neighbors "
+        "classifier and the synthetic dataset generator for the fourth "
+        "experiment. <https://scikit-learn.org/stable/>.",
+        "Operating system power utility (macOS) — the sensor from which the processor's "
+        "actual power is read on this machine (section 3.4).",
     ]
-    grupos.append(("Herramientas de medición", herramientas))
+    grupos.append(("Measurement tools", herramientas))
 
     numero = 1
     for titulo, items in grupos:
