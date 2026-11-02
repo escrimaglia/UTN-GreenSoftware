@@ -182,7 +182,7 @@ tabla de promedios sería versionar dos veces la misma información y abrir la p
 las dos versiones se contradigan. También queda como insumo para analizarlo por fuera del
 proyecto, con una planilla o con cualquier herramienta de datos.
 
-**Qué contiene.** Una fila por medición y 21 columnas. En una corrida completa son 126
+**Qué contiene.** Una fila por medición y 12 columnas. En una corrida completa son 126
 filas: 42 configuraciones —cada combinación de algoritmo y tamaño— por 3 repeticiones.
 
 | Columna | Contenido |
